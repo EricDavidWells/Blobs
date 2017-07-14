@@ -1,58 +1,71 @@
 int pop_no = 10;
 ArrayList<Blob> blobs;
-Blob random_blob;
+ArrayList<Line_Wall> walls;
 
 void setup() {
   size(1000,1000);
-  blobs = new ArrayList<Blob>();
   
+  // initialize blobs
+  blobs = new ArrayList<Blob>();
   for (int i = 0; i<pop_no; i++){
     blobs.add(make_random_blob());  
   }
+  
+  // initialize walls
+  walls = new ArrayList<Line_Wall>();
+  walls.add(new Line_Wall(0, width, 0, 0, 0, 1));
+  walls.add(new Line_Wall(width, width, 0, height, 0, 1));
+  walls.add(new Line_Wall(width, 0, height, height, 0, 1));
+  walls.add(new Line_Wall(0, 0, height, 0, 0, 1));
+
 }
 
 void draw() {
-  background(255);
+  background(0);
+  // move and draw blobs
   for (Blob blob : blobs){
     blob.drive();
     blob.display();
   }
+  
+  // draw walls
+  for (Line_Wall wall : walls){
+   wall.display(); 
+  }
 }
 
 class Blob {
+  PVector pos;
+  PVector vel;
   String name;
-  float xpos;
-  float ypos;
   color c;
   float sz;
   float sp;
-  float xsp;
-  float ysp;
+
   
   Blob(color c_, float sz_, float sp_, String name_, float xpos_, float ypos_){
     c = c_;
     sz = sz_;
     sp = sp_/sz_;
     name = name_;
-    xpos = xpos_;
-    ypos = ypos_;
-    xsp = sp_/sz_;
-    ysp = sp_/sz_;
+    pos = new PVector(xpos_, ypos_);
+    vel = new PVector(0, 0);
   }
   
   void display() {
     stroke(c);
     fill(c);
-    ellipse(xpos, ypos, sz, sz);
+    ellipse(pos.x, pos.y, sz, sz);
   }
-  
+    
   void drive() {
-    xsp += random(-100, 100)*sp/100;
-    ysp += random(-100, 100)*sp/100;
-    xpos += xsp;
-    ypos += ysp;
+    vel.x += random(-1, 1)*sp;
+    vel.y += random(-1, 1)*sp;
+    pos.add(vel);
   }
 }
+
+
 
 Blob make_random_blob(){
   color rand_c = color(random(255), random(255), random(255));
@@ -61,13 +74,7 @@ Blob make_random_blob(){
   float rand_xpos = random(width);
   float rand_ypos = random(height);
   float speed = 50;
-  random_blob = new Blob(rand_c, rand_size, speed, name, rand_xpos, rand_ypos);
+  Blob random_blob = new Blob(rand_c, rand_size, speed, name, rand_xpos, rand_ypos);
   
   return random_blob;
-}
-
-class Wall {
-  
-
-  
-}
+}  
