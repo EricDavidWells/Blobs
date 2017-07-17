@@ -20,11 +20,24 @@ void setup() {
 void draw() {
   background(0);
   // move and draw blobs
-  for (Blob blob : blobs){
+  //for (Blob blob : blobs){
+  //  blob.drive();
+  //  blob.display();
+  //  blob.check_wall_collision();
+  //}
+  
+  for (int i = blobs.size()-1; i>=0; i--){
+    Blob blob = blobs.get(i);
     blob.drive();
     blob.display();
-    blob.check_wall_collsion();
+    blob.check_wall_collision();
+    for (int j = i-1; j>=0; j--){
+      Blob other_blob = blobs.get(j);
+      blob.check_blob_collision(other_blob);
+    }
   }
+  
+  
 
 }
 
@@ -64,7 +77,7 @@ class Blob {
     pos.add(vel);
   }
   
-  void check_wall_collsion(){
+  void check_wall_collision(){
     if (pos.x > width-sz/2) {
       pos.x = width-sz/2;
       vel.x *= -0.5;
@@ -82,6 +95,21 @@ class Blob {
       vel.y *= -0.5;
       }
     }
+    
+  void check_blob_collision(Blob other_blob){
+    if (pos.dist(other_blob.pos) < (sz/2 + other_blob.sz/2)){
+        if (sz < other_blob.sz){
+          //other_blob.sz += 2*(other_blob.sz/2 + (-other_blob.sz + sqrt(other_blob.sz*other_blob.sz+4*sz*sz))/2);
+          other_blob.sz = sqrt(pow(other_blob.sz, 2) + pow(sz, 2));
+          sz = 0;
+        }
+        if (sz > other_blob.sz){
+         //sz += 2*(sz/2 + (-sz + sqrt(sz*sz+4*other_blob.sz*other_blob.sz))/2);
+         sz = sqrt(pow(other_blob.sz, 2) + pow(sz, 2));
+         other_blob.sz = 0;
+        }
+    }
+  }
   
   void randomize(){
     c = color(random(255), random(255), random(255));
