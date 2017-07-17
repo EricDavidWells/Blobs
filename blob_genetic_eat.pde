@@ -1,4 +1,4 @@
-int pop_no = 10;
+int pop_no = 50;
 ArrayList<Blob> blobs;
 ArrayList<Line_Wall> walls;
 
@@ -57,11 +57,18 @@ class Blob {
     fill(c);
     ellipse(pos.x, pos.y, sz, sz);
   }
-    
+
   void drive() {
     vel.x += random(-1, 1)*sp;
     vel.y += random(-1, 1)*sp;
     pos.add(vel);
+  }
+  
+  void check_wall_collsion(ArrayList <Line_Wall> walls_){
+    float radius = sz/2;
+    for (Line_Wall wall : walls_){
+      
+    }
   }
 }
 

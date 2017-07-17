@@ -3,6 +3,7 @@ class Line_Wall {
   float x2;
   float y1;
   float y2;
+  PVector dir;
   color c;
   float t;
   
@@ -11,6 +12,7 @@ class Line_Wall {
     x2 = x2_;
     y1 = y1_;
     y2 = y2_;
+    dir = new PVector((x2-x1), (y2-y1));
     c = c_;
     t = t_;
   }
