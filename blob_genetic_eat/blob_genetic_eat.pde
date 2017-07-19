@@ -43,14 +43,15 @@ void draw() {
       blob.check_blob_collision(other_blob);
       
       // remove dead blobs from array
-      if (other_blob.sz <= 0){
-        blobs.remove(j); 
-      }
+      //if (blob.sz <= 0){
+      //  blobs.remove(i);  
+      //}
+      //// remove dead blobs from array
+      //if (other_blob.sz <= 0){
+      //  blobs.remove(j); 
+      //}
       
-      // remove dead blobs from array
-      if (blob.sz <= 0){
-        blobs.remove(i);  
-      }
+      
     }
     
   }
