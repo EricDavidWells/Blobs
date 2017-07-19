@@ -1,11 +1,11 @@
 
-class Food_Blob {
+class Food {
   
   color c;
   float sz;
   PVector pos;
   
-  Food_Blob(color c_, float sz_, float xpos, float ypos){
+  Food(color c_, float sz_, float xpos, float ypos){
     c = c_;
     sz = sz_;
     pos = new PVector(xpos, ypos);

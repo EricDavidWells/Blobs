@@ -1,6 +1,7 @@
-int pop_no = 50;
+int pop_no = 25;
+int food_no = 100;
 ArrayList<Blob> blobs;
-Blob brendo;
+ArrayList<Food> foods;
 
 void setup() {
   // initialize size of window
@@ -15,17 +16,18 @@ void setup() {
     // add blob to array
     blobs.add(blob);
   }
-  //brendo = new Blob(color(0, 0, 0), 0, 0, "", 0, 0);
-  //brendo.randomize();
-  //brendo.name = "Brendo is cool";
-  //brendo.sz = 200;
-  //brendo.sp = 10;
-  //blobs.add(brendo);
+  
+  foods = new ArrayList<Food>();
+  for (int i = 0; i<food_no; i++){
+    Food food = new Food(color(random(255), random(255), random(255), 100), 5, random(0, width), random(0, height));
+    foods.add(food);
+  }
 
 }
 
 void draw() {
   background(0);
+  
   
   for (int i = blobs.size()-1; i>=0; i--){
     Blob blob = blobs.get(i);
@@ -43,21 +45,38 @@ void draw() {
       blob.check_blob_collision(other_blob);
       
       // remove dead blobs from array
-      //if (blob.sz <= 0){
-      //  blobs.remove(i);  
-      //}
-      //// remove dead blobs from array
-      //if (other_blob.sz <= 0){
-      //  blobs.remove(j); 
-      //}
-      
-      
+      if (blob.sz <= 0){
+        blobs.remove(i); 
+        break;
+      }
+      // remove dead blobs from array
+      if (other_blob.sz <= 0){
+        blobs.remove(j); 
+        continue;
+      } 
     }
     
+    // check if blobs hit food
+    for (int j = foods.size()-1; j>=0; j--){
+      Food food = foods.get(j);
+      blob.check_food_collision(food);
+      if (food.sz <= 0){
+       foods.remove(j);
+       Food new_food = new Food(color(random(255), random(255), random(255), 100), 5, random(0, width), random(0, height));
+       foods.add(new_food);
+       continue;
+      }
+    }
   }
   
+  for (int i = foods.size()-1; i>=0; i--){
+    Food food = foods.get(i);
+    food.display();
+  }
   
-
+  fill(255);
+  text("blobs left: " + str(blobs.size()), width/2, height/2);
+  text("foods left: " + str(foods.size()), width/2, height/2-12);
 }
 
 class Blob {
@@ -82,11 +101,6 @@ class Blob {
     stroke(c);
     fill(c);
     ellipse(pos.x, pos.y, sz, sz);
-    //fill(0);
-    //if (name == "Brendo is cool"){
-    //textSize(20);
-    //text(name, pos.x, pos.y);
-    //}
   }
 
   void drive() {
@@ -123,16 +137,26 @@ class Blob {
     
   void check_blob_collision(Blob other_blob){
     if (pos.dist(other_blob.pos) < (sz/2 + other_blob.sz/2)){
+      
         if (sz < other_blob.sz){
           other_blob.sz = sqrt(pow(other_blob.sz, 2) + pow(sz, 2));
-          other_blob.sp = 50/sz;
+          other_blob.sp = 50/other_blob.sz;
           sz = 0;
         }
         if (sz > other_blob.sz){
          sz = sqrt(pow(other_blob.sz, 2) + pow(sz, 2));
          sp = 50/sz;
          other_blob.sz = 0;
-
+        }
+    }
+  }
+  
+  void check_food_collision(Food food){
+      if (pos.dist(food.pos) < (sz/2 + food.sz/2)){
+        if (sz > food.sz){
+         sz = sqrt(pow(food.sz, 2) + pow(sz, 2));
+         sp = 50/sz;
+         food.sz = 0;
         }
     }
   }
