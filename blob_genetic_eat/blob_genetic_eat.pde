@@ -1,5 +1,6 @@
 int pop_no = 25;
-int food_no = 100;
+int food_no = 500;
+float food_energy = 2.5;
 ArrayList<Blob> blobs;
 ArrayList<Food> foods;
 
@@ -19,7 +20,7 @@ void setup() {
   
   foods = new ArrayList<Food>();
   for (int i = 0; i<food_no; i++){
-    Food food = new Food(color(random(255), random(255), random(255), 100), 5, random(0, width), random(0, height));
+    Food food = new Food(color(random(255), random(255), random(255), 100), 5, random(0, width), random(0, height), food_energy);
     foods.add(food);
   }
 
@@ -27,8 +28,7 @@ void setup() {
 
 void draw() {
   background(0);
-  
-  
+    
   for (int i = blobs.size()-1; i>=0; i--){
     Blob blob = blobs.get(i);
     
@@ -62,13 +62,14 @@ void draw() {
       blob.check_food_collision(food);
       if (food.sz <= 0){
        foods.remove(j);
-       Food new_food = new Food(color(random(255), random(255), random(255), 100), 5, random(0, width), random(0, height));
+       Food new_food = new Food(color(random(255), random(255), random(255), 100), 5, random(0, width), random(0, height), food_energy);
        foods.add(new_food);
        continue;
       }
     }
   }
   
+  // display food
   for (int i = foods.size()-1; i>=0; i--){
     Food food = foods.get(i);
     food.display();
@@ -154,7 +155,7 @@ class Blob {
   void check_food_collision(Food food){
       if (pos.dist(food.pos) < (sz/2 + food.sz/2)){
         if (sz > food.sz){
-         sz = sqrt(pow(food.sz, 2) + pow(sz, 2));
+         sz = sqrt(pow(food.energy, 2) + pow(sz, 2));
          sp = 50/sz;
          food.sz = 0;
         }
