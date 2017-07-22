@@ -20,7 +20,7 @@ void setup() {
   
   foods = new ArrayList<Food>();
   for (int i = 0; i<food_no; i++){
-    Food food = new Food(color(random(255), random(255), random(255), 100), 5, random(0, width), random(0, height), food_energy);
+    Food food = new Food(color(random(10, 255), random(10, 255), random(10, 255), 50), 2.5, random(0, width), random(0, height), food_energy);
     foods.add(food);
   }
 
@@ -45,12 +45,12 @@ void draw() {
       blob.check_blob_collision(other_blob);
       
       // remove dead blobs from array
-      if (blob.sz <= 0){
+      if (blob.r <= 0){
         blobs.remove(i); 
         break;
       }
       // remove dead blobs from array
-      if (other_blob.sz <= 0){
+      if (other_blob.r <= 0){
         blobs.remove(j); 
         continue;
       } 
@@ -60,9 +60,9 @@ void draw() {
     for (int j = foods.size()-1; j>=0; j--){
       Food food = foods.get(j);
       blob.check_food_collision(food);
-      if (food.sz <= 0){
+      if (food.r <= 0){
        foods.remove(j);
-       Food new_food = new Food(color(random(255), random(255), random(255), 100), 5, random(0, width), random(0, height), food_energy);
+       Food new_food = new Food(color(random(255), random(255), random(255), 100), 2.5, random(0, width), random(0, height), food_energy);
        foods.add(new_food);
        continue;
       }
@@ -83,16 +83,16 @@ void draw() {
 class Blob {
 
   color c;
-  float sz;
+  float r;
   float sp;
   String name;
   PVector pos;
   PVector vel;
   
-  Blob(color c_, float sz_, float sp_, String name_, float xpos_, float ypos_){
+  Blob(color c_, float r_, float sp_, String name_, float xpos_, float ypos_){
     c = c_;
-    sz = sz_;
-    sp = sp_/sz_;
+    r = r_;
+    sp = sp_/r;
     name = name_;
     pos = new PVector(xpos_, ypos_);
     vel = new PVector(0, 0);
@@ -101,7 +101,7 @@ class Blob {
   void display() {
     stroke(c);
     fill(c);
-    ellipse(pos.x, pos.y, sz, sz);
+    ellipse(pos.x, pos.y, 2*r, 2*r);
   }
 
   void drive() {
@@ -118,54 +118,54 @@ class Blob {
   }
   
   void check_wall_collision(){
-    if (pos.x > width-sz/2) {
-      pos.x = width-sz/2;
+    if (pos.x > width-r) {
+      pos.x = width-r;
       vel.x *= -0.5;
       } 
-    else if (pos.x < sz/2) {
-      pos.x = sz/2;
+    else if (pos.x < r) {
+      pos.x = r;
       vel.x *= -0.5;
       } 
-    else if (pos.y > height-sz/2) {
-      pos.y = height-sz/2;
+    else if (pos.y > height-r) {
+      pos.y = height-r;
       vel.y *= -0.5;
       } 
-    else if (pos.y < sz/2) {
-      pos.y = sz/2;
+    else if (pos.y < r) {
+      pos.y = r;
       vel.y *= -0.5;
       }
     }
     
   void check_blob_collision(Blob other_blob){
-    if (pos.dist(other_blob.pos) < (sz/2 + other_blob.sz/2)){
+    if (pos.dist(other_blob.pos) < (r + other_blob.r)){
       
-        if (sz < other_blob.sz){
-          other_blob.sz = sqrt(pow(other_blob.sz, 2) + pow(sz, 2));
-          other_blob.sp = 50/other_blob.sz;
-          sz = 0;
+        if (r < other_blob.r){
+          other_blob.r = sqrt(pow(other_blob.r, 2) + pow(r, 2));
+          other_blob.sp = 50/other_blob.r;
+          r = 0;
         }
-        if (sz > other_blob.sz){
-         sz = sqrt(pow(other_blob.sz, 2) + pow(sz, 2));
-         sp = 50/sz;
-         other_blob.sz = 0;
+        if (r > other_blob.r){
+         r = sqrt(pow(other_blob.r, 2) + pow(r, 2));
+         sp = 50/r;
+         other_blob.r = 0;
         }
     }
   }
   
   void check_food_collision(Food food){
-      if (pos.dist(food.pos) < (sz/2 + food.sz/2)){
-        if (sz > food.sz){
-         sz = sqrt(pow(food.energy, 2) + pow(sz, 2));
-         sp = 50/sz;
-         food.sz = 0;
+      if (pos.dist(food.pos) < (r + food.r)){
+        if (r > food.r){
+         r = sqrt(pow(food.energy, 2) + pow(r, 2));
+         sp = 25/r;
+         food.r = 0;
         }
     }
   }
   
   void randomize(){
     c = color(random(255), random(255), random(255));
-    sz = random(10, 100);
-    sp = 50/sz;
+    r = random(5, 50);
+    sp = 25/r;
     name = "random blob";
     pos = new PVector(random(width), random(height));
     vel = new PVector(0, 0);
