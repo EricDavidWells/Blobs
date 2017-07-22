@@ -4,20 +4,22 @@ float food_energy = 2.5;
 ArrayList<Blob> blobs;
 ArrayList<Food> foods;
 
+
+
 void setup() {
+  
   // initialize size of window
   size(1000,700);
+  
   // initialize blobs
   blobs = new ArrayList<Blob>();
   for (int i = 0; i<pop_no; i++){
-    // make new generic blob  
     Blob blob = new Blob(color(0, 0, 0), 0, 0, "", 0, 0);
-    // randomize blob
     blob.randomize();
-    // add blob to array
     blobs.add(blob);
   }
   
+  // initialize foods
   foods = new ArrayList<Food>();
   for (int i = 0; i<food_no; i++){
     Food food = new Food(color(random(10, 255), random(10, 255), random(10, 255), 50), 2.5, random(0, width), random(0, height), food_energy);
@@ -29,6 +31,7 @@ void setup() {
 void draw() {
   background(0);
     
+  // cycle through all blobs
   for (int i = blobs.size()-1; i>=0; i--){
     Blob blob = blobs.get(i);
     
@@ -60,6 +63,8 @@ void draw() {
     for (int j = foods.size()-1; j>=0; j--){
       Food food = foods.get(j);
       blob.check_food_collision(food);
+      
+      // remove dead food and add a new food
       if (food.r <= 0){
        foods.remove(j);
        Food new_food = new Food(color(random(255), random(255), random(255), 100), 2.5, random(0, width), random(0, height), food_energy);
@@ -69,7 +74,7 @@ void draw() {
     }
   }
   
-  // display food
+  // display food outside of blob loop
   for (int i = foods.size()-1; i>=0; i--){
     Food food = foods.get(i);
     food.display();
@@ -88,20 +93,25 @@ class Blob {
   String name;
   PVector pos;
   PVector vel;
+  float vis_r;
   
-  Blob(color c_, float r_, float sp_, String name_, float xpos_, float ypos_){
+  Blob(color c_, float r_, float sp_, String name_, float xpos_, float ypos_, float vis_r_){
     c = c_;
     r = r_;
     sp = sp_/r;
     name = name_;
     pos = new PVector(xpos_, ypos_);
     vel = new PVector(0, 0);
+    vis_r = vis_r_;
   }
   
   void display() {
     stroke(c);
     fill(c);
     ellipse(pos.x, pos.y, 2*r, 2*r);
+    stroke(red(c), green(c), blue(c), 50);
+    fill(red(c), green(c), blue(c), 50);
+    ellipse(pos.x, pos.y, 2*vis_r, 2*vis_r);
   }
 
   void drive() {
