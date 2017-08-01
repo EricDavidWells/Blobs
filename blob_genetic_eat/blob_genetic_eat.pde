@@ -1,5 +1,5 @@
-int pop_no = 20;
-int food_no = 50;
+int pop_no = 50;
+int food_no = 200;
 float food_energy = 2.5;
 ArrayList<Blob> blobs;
 ArrayList<Food> foods;
@@ -211,7 +211,7 @@ class Blob {
       float angle_rounded = angle_region*TWO_PI/a_inputs.length + PI/a_inputs.length;
       
       int neural_input_location = dist_region * a_inputs.length + angle_region;
-      blob_neural_input[neural_input_location] = other_blob.r; //<>//
+      blob_neural_input[neural_input_location] = r-other_blob.r; //<>//
       
       stroke(255);
       fill(255);
@@ -231,7 +231,7 @@ class Blob {
       float angle_rounded = angle_region*TWO_PI/other_blob.a_inputs.length + PI/other_blob.a_inputs.length;
       
       int neural_input_location = dist_region * other_blob.a_inputs.length + angle_region;
-      other_blob.blob_neural_input[neural_input_location] = r; //<>//
+      other_blob.blob_neural_input[neural_input_location] = other_blob.r-r; //<>//
       
       stroke(255);
       fill(255); 
@@ -260,7 +260,7 @@ class Blob {
       float angle = atan2((food.pos.y-pos.y), -(food.pos.x-pos.x)) + PI;
       stroke(200, 100, 100);
       fill(200, 100, 100);
-      line(pos.x, pos.y, pos.x + cos(angle)*r, pos.y - sin(angle)*r);
+      //line(pos.x, pos.y, pos.x + cos(angle)*r, pos.y - sin(angle)*r);
     }
   }
   
