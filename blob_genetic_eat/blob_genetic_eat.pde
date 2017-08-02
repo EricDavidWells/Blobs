@@ -1,8 +1,9 @@
 int pop_no = 50;
 int food_no = 200;
 float food_energy = 2.5;
-ArrayList<Blob> blobs;
+//ArrayList<Blob> blobs;
 ArrayList<Food> foods;
+Population blobs;
 
 // genetic variables
 int d_inputs_n = 5;    // number of distance regions
@@ -14,12 +15,14 @@ void setup() {
   // initialize size of window
   size(1000,700);
   
+  blobs = new Population();
+  
   // initialize blobs
-  blobs = new ArrayList<Blob>();
+  //blobs = new ArrayList<Blob>();
   for (int i = 0; i<pop_no; i++){
     Blob blob = new Blob(color(0, 0, 0), 0, 0, sp_max, "", 0, 0, 0, d_inputs_n, a_inputs_n, "brownian");
     blob.randomize();
-    blobs.add(blob);
+    blobs.individuals.add(blob);
   }
   
   // initialize foods
@@ -40,34 +43,29 @@ void draw() {
     food.display();
   }
   
-  // display and drive blobs
-  
-  for (int i = blobs.size()-1; i>=0; i--){
-    Blob blob = blobs.get(i);
-    blob.drive();
-    blob.display();
-  }
-    
+  blobs.drive();
+  blobs.display();
+
   // cycle through all blobs
-  for (int i = blobs.size()-1; i>=0; i--){
-    Blob blob = blobs.get(i);
+  for (int i = blobs.individuals.size()-1; i>=0; i--){
+    Blob blob = blobs.individuals.get(i);
     
     // check if blobs hit walls
     blob.check_wall_collision();
     
     //check if blobs hit each other
     for (int j = i-1; j>=0; j--){
-      Blob other_blob = blobs.get(j);
+      Blob other_blob = blobs.individuals.get(j);
       blob.check_blob_collision(other_blob);
       
       // remove dead blobs from array
       if (blob.r <= 0){
-        blobs.remove(i);  //<>//
+        blobs.individuals.remove(i);  //<>//
         break;
       }
       // remove dead blobs from array
       if (other_blob.r <= 0){
-        blobs.remove(j); //<>//
+        blobs.individuals.remove(j); //<>//
         i--;
         continue;
       } 
@@ -89,26 +87,26 @@ void draw() {
   }
   
   fill(255);
-  text("blobs left: " + str(blobs.size()), width/2, height/2);
+  text("blobs left: " + str(blobs.individuals.size()), width/2, height/2);
   text("foods left: " + str(foods.size()), width/2, height/2-12);
 }
 
 class Blob {
 
-  color c;
-  float r;
-  float sp;
-  float sp_max;
-  String name;
-  PVector pos;
-  PVector vel;
-  float vis_r;
-  float[] d_inputs;
-  float[] a_inputs;
-  float[] blob_neural_input;
-  float[] food_neural_input;
-  float[] wall_neural_input;
-  String dr_mode;
+  color c;  // color
+  float r;  // radius
+  float sp;  // speed
+  float sp_max;  // max speed
+  String name;  // name
+  PVector pos;  // position
+  PVector vel;  // velocity
+  float vis_r;  // vision radius
+  float[] d_inputs;  // number of distance input neurons
+  float[] a_inputs;  // number of angular input neurons
+  float[] blob_neural_input;  // input for blob vision
+  float[] food_neural_input;  // input for food vision
+  float[] wall_neural_input;  // input for wall vision
+  String dr_mode;  // drive mode
 
   Blob(color c_, float r_, float sp_, float sp_max_, String name_, float xpos_, float ypos_, float vis_r_, int d_inputs_n, int a_inputs_n, String dr_mode_){
     c = c_;
@@ -156,12 +154,15 @@ class Blob {
     pos.add(vel);
     }
     else if (dr_mode == "mouse"){
+      // follow mouse movement
       pos.x = pos.x*(100-sp)/100 + float(mouseX)*sp/100;
       pos.y = pos.y*(100-sp)/100 + float(mouseY)*sp/100; 
     }
   }
   
   void check_wall_collision(){
+    // check if collision with edges of screen and adjust position to not exceed it
+    
     if (pos.x > width-r) {
       pos.x = width-r;
       vel.x *= -0.5;
@@ -181,6 +182,7 @@ class Blob {
     }
     
   void check_blob_collision(Blob other_blob){
+    // check collision with another blob as well as collision of vision with another blob
     
     // check body collision
     if (pos.dist(other_blob.pos) < (r + other_blob.r)){
@@ -282,7 +284,7 @@ void mousePressed(){
   mouseblob.randomize();
   mouseblob.r = 10;
   mouseblob.sp = 100;
-  blobs.add(mouseblob); 
+  blobs.individuals.add(mouseblob); 
 }
 
 void keyPressed(){
