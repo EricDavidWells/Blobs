@@ -1,7 +1,6 @@
 int pop_no = 50;
 int food_no = 200;
 float food_energy = 2.5;
-//ArrayList<Blob> blobs;
 ArrayList<Food> foods;
 Population blobs;
 
@@ -17,15 +16,14 @@ void setup() {
   
   blobs = new Population();
   
-  // initialize blobs
-  //blobs = new ArrayList<Blob>();
+  // initialize blobs into population class
   for (int i = 0; i<pop_no; i++){
     Blob blob = new Blob(color(0, 0, 0), 0, 0, sp_max, "", 0, 0, 0, d_inputs_n, a_inputs_n, "brownian");
     blob.randomize();
     blobs.individuals.add(blob);
   }
   
-  // initialize foods
+  // initialize foods into arraylist object
   foods = new ArrayList<Food>();
   for (int i = 0; i<food_no; i++){
     Food food = new Food(color(random(10, 255), random(10, 255), random(10, 255), 50), 2.5, random(0, width), random(0, height), food_energy);
@@ -43,49 +41,13 @@ void draw() {
     food.display();
   }
   
+  // drive all blobs
   blobs.drive();
+  // display all blobs
   blobs.display();
-
-  // cycle through all blobs
-  for (int i = blobs.individuals.size()-1; i>=0; i--){
-    Blob blob = blobs.individuals.get(i);
+  // check all collisions
+  blobs.check_collisions();
     
-    // check if blobs hit walls
-    blob.check_wall_collision();
-    
-    //check if blobs hit each other
-    for (int j = i-1; j>=0; j--){
-      Blob other_blob = blobs.individuals.get(j);
-      blob.check_blob_collision(other_blob);
-      
-      // remove dead blobs from array
-      if (blob.r <= 0){
-        blobs.individuals.remove(i);  //<>//
-        break;
-      }
-      // remove dead blobs from array
-      if (other_blob.r <= 0){
-        blobs.individuals.remove(j); //<>//
-        i--;
-        continue;
-      } 
-    }
-    
-    // check if blobs hit food
-    for (int j = foods.size()-1; j>=0; j--){
-      Food food = foods.get(j);
-      blob.check_food_collision(food);
-      
-      // remove dead food and add a new food
-      if (food.r <= 0){
-       foods.remove(j);
-       Food new_food = new Food(color(random(255), random(255), random(255), 100), 2.5, random(0, width), random(0, height), food_energy);
-       foods.add(new_food);
-       continue;
-      }
-    }
-  }
-  
   fill(255);
   text("blobs left: " + str(blobs.individuals.size()), width/2, height/2);
   text("foods left: " + str(foods.size()), width/2, height/2-12);
@@ -98,12 +60,12 @@ class Blob {
   float sp;  // speed
   float sp_max;  // max speed
   String name;  // name
-  PVector pos;  // position
+  PVector pos;  // position //<>//
   PVector vel;  // velocity
   float vis_r;  // vision radius
   float[] d_inputs;  // number of distance input neurons
   float[] a_inputs;  // number of angular input neurons
-  float[] blob_neural_input;  // input for blob vision
+  float[] blob_neural_input;  // input for blob vision //<>//
   float[] food_neural_input;  // input for food vision
   float[] wall_neural_input;  // input for wall vision
   String dr_mode;  // drive mode
@@ -251,7 +213,7 @@ class Blob {
     if (pos.dist(food.pos) < (r + food.r)){
       if (r > food.r){
        r = sqrt(pow(food.energy, 2) + pow(r, 2));
-       vis_r = 2*r;
+       vis_r = 2*r; //<>//
        sp = sp_max/r;
        food.r = 0;
       }
@@ -271,7 +233,7 @@ class Blob {
     
     c = color(random(255), random(255), random(255));
     r = random(5, 50);
-    sp = sp_max/r;
+    sp = sp_max/r; //<>//
     name = "random blob";
     pos = new PVector(random(width), random(height));
     vel = new PVector(0, 0);
