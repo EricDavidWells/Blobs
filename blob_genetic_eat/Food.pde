@@ -1,4 +1,3 @@
-
 class Food {
   
   color c;
