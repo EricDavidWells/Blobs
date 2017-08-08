@@ -4,20 +4,59 @@ import org.jblas.util.*;
 import org.jblas.benchmark.*;
 import org.jblas.ranges.*;
 
-int[] sizes = {2, 4, 2};
-float[] chromosome;
-int gene_count;
+int[] sizes = {2, 3, 2};
+//float[] chromosome;
+
 ArrayList<org.jblas.FloatMatrix> weights;
 ArrayList<org.jblas.FloatMatrix> biases;
 org.jblas.FloatMatrix input;
 org.jblas.FloatMatrix output;
 
+ArrayList<org.jblas.FloatMatrix> weights2;
+ArrayList<org.jblas.FloatMatrix> biases2;
 
 void setup() {
+  int gene_count=0;
   for (int i=0; i<sizes.length; i++){
     gene_count += sizes[i];  
   }
-  chromosome = new float[gene_count];
+  int bias_count=0;
+  int weight_count=0;
+  for (int i=1; i<sizes.length; i++){
+   bias_count += sizes[i];
+   weight_count += sizes[i] * sizes[i-1];
+  }
+  
+  //chromosome = new float[gene_count*2];
+  float[] chromosome = {1, 2, 3, -2.9, -5.9, 1, 1, 2, 2, 3, 3, 1, 1, 1, 2, 2, 2};
+  int chromosome_index = 0;
+  
+  weights2 = new ArrayList<org.jblas.FloatMatrix>();
+  biases2 = new ArrayList<org.jblas.FloatMatrix>();
+  
+  // create biases arraylist of matrices from chromosome
+  for (int i=1; i<sizes.length; i++){  // for each hidden layer and output layer 
+    // add a column matrix of length of current layer to biases array list
+    biases2.add(new org.jblas.FloatMatrix(subset(chromosome, chromosome_index, sizes[i]))); 
+    // update chromosome index
+    chromosome_index += sizes[i];
+  } 
+  
+  // create weights arraylist of matrices from chromosome
+  for (int i=1; i<sizes.length; i++){  // for each hidden layer and output layer
+    // create temporary empty weight matrix with # of rows = length of current layer and # of columns = length of previous layer
+    int rows = sizes[i];
+    int cols = sizes[i-1];
+    org.jblas.FloatMatrix w = new org.jblas.FloatMatrix(new float[rows][cols]);  
+    for (int j=0; j<rows; j++){  // for each row in weight matrix
+      // add a row onto the weight matrix from chromosome
+      w.putRow(j, new org.jblas.FloatMatrix(subset(chromosome, chromosome_index, cols)));
+      // update chromosome index
+      chromosome_index += cols;
+    }
+    // add weight matrix into the weights array list
+    weights2.add(w);
+  } //<>//
   
   weights = new ArrayList<org.jblas.FloatMatrix>();
   org.jblas.FloatMatrix w1 = new org.jblas.FloatMatrix(new float[][] {{1, 1}, {2, 2}, {3, 3}});
@@ -34,7 +73,10 @@ void setup() {
   org.jblas.FloatMatrix input = org.jblas.FloatMatrix.ones(2,1);
   
   org.jblas.FloatMatrix output = feed_forward(weights, biases, input);
-  print(output); //<>//
+  print(output);
+  
+  org.jblas.FloatMatrix output2 = feed_forward(weights2, biases2, input);
+  print(output2); //<>//
 }
 
 void draw(){
