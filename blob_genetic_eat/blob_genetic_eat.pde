@@ -52,10 +52,11 @@ void draw() {
   
   // drive all blobs
   blobs.drive();
-  // display all blobs
+    // display all blobs
   blobs.display();
   // check all collisions
   blobs.check_collisions();
+
     
   fill(255);
   text("blobs left: " + str(blobs.individuals.size()), width/2, height/2);
@@ -70,15 +71,15 @@ class Blob {
   float sp;  // speed
   float sp_max;  // max speed
   String name;  // name
-  PVector pos;  // position //<>//
+  PVector pos;  // position
   PVector vel;  // velocity
   float vis_r;  // vision radius
   float vis_mult;
   float[] d_inputs;  // number of distance input neurons
   float[] a_inputs;  // number of angular input neurons
-  float[] blob_neural_input;  // input for blob vision //<>//
-  float[] food_neural_input;  // input for food vision
-  float[] wall_neural_input;  // input for wall vision
+  float[] NN_blob_input;  // input for blob vision
+  float[] NN_food_input;  // input for food vision
+  float[] NN_wall_input;  // input for wall vision
   String dr_mode;  // drive mode
   int[] sizes = new int[3];
   float[] chromosome;
@@ -99,15 +100,15 @@ class Blob {
     vis_r = r*vis_mult_;
     d_inputs = new float[d_inputs_n];
     a_inputs = new float[a_inputs_n];
-    blob_neural_input = new float[d_inputs_n*a_inputs_n];
-    food_neural_input = new float[d_inputs_n*a_inputs_n];
-    wall_neural_input = new float[d_inputs_n*a_inputs_n];
+    NN_blob_input = new float[d_inputs_n*a_inputs_n];
+    NN_food_input = new float[d_inputs_n*a_inputs_n];
+    NN_wall_input = new float[d_inputs_n*a_inputs_n];
     decay_rate = decay_rate_;
     dr_mode = dr_mode_;
-    sizes[0] = d_inputs_n*a_inputs_n;
+    sizes[0] = d_inputs_n*a_inputs_n*2;
     sizes[1] = 8;
     sizes[2] = 4;
-    chromosome = new float[(sizes[1] + sizes[2]) + (sizes[0]*sizes[1] + sizes[1]*sizes[2]) + 3];
+    chromosome = new float[((sizes[1] + sizes[2]) + (sizes[0]*sizes[1] + sizes[1]*sizes[2]))*2 + 3];
     output = org.jblas.FloatMatrix.zeros(4);
 }
   
@@ -124,13 +125,13 @@ class Blob {
     ellipse(pos.x, pos.y, 2*r, 2*r);
     
 
-    // display NN output value
-    stroke(255);
-    fill(255);
-    text(str(output.get(0)), pos.x, pos.y+24);
-    text(str(output.get(1)), pos.x, pos.y+12);
-    text(str(output.get(2)), pos.x, pos.y);
-    text(str(output.get(3)), pos.x, pos.y-12);
+    // display NN output values
+    //stroke(255);
+    //fill(255);
+    //text(str(output.get(0)), pos.x, pos.y+24);
+    //text(str(output.get(1)), pos.x, pos.y+12);
+    //text(str(output.get(2)), pos.x, pos.y);
+    //text(str(output.get(3)), pos.x, pos.y-12);
 
   }
 
@@ -155,7 +156,7 @@ class Blob {
     }
     else if (dr_mode == "NN"){
       // use neural net to drive blob
-      org.jblas.FloatMatrix input = new org.jblas.FloatMatrix(blob_neural_input);
+      org.jblas.FloatMatrix input = new org.jblas.FloatMatrix(concat(NN_blob_input, NN_food_input));
       output = feed_forward(weights, biases, input);
       
       vel.x += sp*(output.get(0) - output.get(1));
@@ -165,8 +166,14 @@ class Blob {
       
       pos.add(vel);
       
-      for (int i = 0; i<blob_neural_input.length; i++){
-        blob_neural_input[i] = 0; 
+      for (int i = 0; i<NN_blob_input.length; i++){
+        NN_blob_input[i] = 0; 
+      }
+      for (int i = 0; i<NN_food_input.length; i++){
+        NN_food_input[i] = 0; 
+      }
+      for (int i = 0; i<NN_wall_input.length; i++){
+        NN_wall_input[i] = 0; 
       }
       
     }
@@ -192,8 +199,58 @@ class Blob {
     if (pos.y < r) {
       pos.y = r;
       vel.y *= -0.5;
-      }
     }
+      
+    stroke(255);
+    fill(255);  
+    // check vision collision
+    if (pos.x > width-vis_r) {
+      float dist_normal = abs(width-pos.x)/vis_r; //<>//
+      int dist_region = int(dist_normal*d_inputs.length);
+      float angle = atan2(0, -(width-pos.x)) + PI;
+      float angle_normal = min(angle/TWO_PI, 0.99);
+      int angle_region = int(angle_normal*a_inputs.length);
+      float angle_rounded = angle_region*TWO_PI/a_inputs.length + PI/a_inputs.length;
+      int NN_wall_index = dist_region * a_inputs.length + angle_region;
+      NN_wall_input[NN_wall_index] = 1;
+      //text(str(NN_wall_index), pos.x, pos.y);
+      } 
+    if (pos.x < vis_r) {
+      float dist_normal = abs(pos.x)/vis_r;
+      int dist_region = int(dist_normal*d_inputs.length);
+      float angle = atan2(0, -(-pos.x)) + PI;
+      float angle_normal = min(angle/TWO_PI, 0.99);
+      int angle_region = int(angle_normal*a_inputs.length);
+      float angle_rounded = angle_region*TWO_PI/a_inputs.length + PI/a_inputs.length;
+      int NN_wall_index = dist_region * a_inputs.length + angle_region;
+      NN_wall_input[NN_wall_index] = 1;
+      //text(str(NN_wall_index), pos.x, pos.y);
+      }
+    if (pos.y > height-vis_r) {
+      float dist_normal = abs(height-pos.y)/vis_r;
+      int dist_region = int(dist_normal*d_inputs.length);
+      float angle = atan2(height-pos.y, 0) + PI;
+      float angle_normal = min(angle/TWO_PI, 0.99);
+      int angle_region = int(angle_normal*a_inputs.length);
+      float angle_rounded = angle_region*TWO_PI/a_inputs.length + PI/a_inputs.length;
+      int NN_wall_index = dist_region * a_inputs.length + angle_region;
+      NN_wall_input[NN_wall_index] = 1;
+      //text(str(NN_wall_index), pos.x, pos.y);
+    } 
+    if (pos.y < vis_r) {
+      float dist_normal = abs(pos.y)/vis_r;
+      int dist_region = int(dist_normal*d_inputs.length);
+      float angle = atan2(-pos.y, 0) + PI;
+      float angle_normal = min(angle/TWO_PI, 0.99);
+      int angle_region = int(angle_normal*a_inputs.length);
+      float angle_rounded = angle_region*TWO_PI/a_inputs.length + PI/a_inputs.length;
+      int NN_wall_index = dist_region * a_inputs.length + angle_region;
+      NN_wall_input[NN_wall_index] = 1;
+      //text(str(NN_wall_index), pos.x, pos.y);
+    }
+  }
+    
+    
     
   void check_blob_collision(Blob other_blob){
     // check collision with another blob as well as collision of vision with another blob
@@ -218,43 +275,43 @@ class Blob {
     // check vision collision
     if (pos.dist(other_blob.pos) < (vis_r + other_blob.r)){
       
-      float dist = pos.dist(other_blob.pos) - other_blob.r;
-      float dist_normal = max(dist/vis_r, 0);
+      float dist = abs(pos.dist(other_blob.pos) - other_blob.r);
+      float dist_normal = dist/vis_r;
       int dist_region = int(dist_normal*d_inputs.length);
       float angle = atan2((other_blob.pos.y-pos.y), -(other_blob.pos.x-pos.x)) + PI;
-      float angle_normal = angle/TWO_PI;
+      float angle_normal = min(angle/TWO_PI, 0.99);
       int angle_region = int(angle_normal*a_inputs.length);
       float angle_rounded = angle_region*TWO_PI/a_inputs.length + PI/a_inputs.length;
       
-      int neural_input_location = dist_region * a_inputs.length + angle_region;
-      blob_neural_input[neural_input_location] = r-other_blob.r; //<>//
+      int NN_blob_index = dist_region * a_inputs.length + angle_region;
+      NN_blob_input[NN_blob_index] = r-other_blob.r;
       
       stroke(255);
       fill(255);
-      line(pos.x, pos.y, pos.x + cos(angle_rounded)*r, pos.y - sin(angle_rounded)*r);
-      //line(pos.x, pos.y, pos.x + cos(angle)*r, pos.y - sin(angle)*r);
-      text(str(neural_input_location), pos.x, pos.y);
+      //line(pos.x, pos.y, pos.x + cos(angle_rounded)*r, pos.y - sin(angle_rounded)*r);
+      line(pos.x, pos.y, pos.x + cos(angle)*r, pos.y - sin(angle)*r);
+      text(str(NN_blob_index), pos.x, pos.y);
       
     }
     
     if (pos.dist(other_blob.pos) < (r + other_blob.vis_r)){
      
-      float dist = other_blob.pos.dist(pos) - r;
-      float dist_normal = max(dist/other_blob.vis_r, 0);;
+      float dist = abs(other_blob.pos.dist(pos) - r);
+      float dist_normal = dist/other_blob.vis_r;
       int dist_region = int(dist_normal*other_blob.d_inputs.length);
       float angle = atan2((pos.y-other_blob.pos.y), -(pos.x-other_blob.pos.x)) + PI;
-      float angle_normal = angle/TWO_PI;
+      float angle_normal = min(angle/TWO_PI, 0.99);
       int angle_region = int(angle_normal*other_blob.a_inputs.length);
       float angle_rounded = angle_region*TWO_PI/other_blob.a_inputs.length + PI/other_blob.a_inputs.length;
       
-      int neural_input_location = dist_region * other_blob.a_inputs.length + angle_region;
-      other_blob.blob_neural_input[neural_input_location] = other_blob.r-r;
+      int NN_blob_index = dist_region * other_blob.a_inputs.length + angle_region;
+      other_blob.NN_blob_input[NN_blob_index] = other_blob.r-r;
       
       stroke(255);
       fill(255); 
-      line(other_blob.pos.x, other_blob.pos.y, other_blob.pos.x + cos(angle_rounded)*other_blob.r, other_blob.pos.y - sin(angle_rounded)*other_blob.r);
-      //line(other_blob.pos.x, other_blob.pos.y, other_blob.pos.x + cos(angle)*other_blob.r, other_blob.pos.y - sin(angle)*other_blob.r); 
-      text(str(neural_input_location), other_blob.pos.x, other_blob.pos.y);  
+      //line(other_blob.pos.x, other_blob.pos.y, other_blob.pos.x + cos(angle_rounded)*other_blob.r, other_blob.pos.y - sin(angle_rounded)*other_blob.r);
+      line(other_blob.pos.x, other_blob.pos.y, other_blob.pos.x + cos(angle)*other_blob.r, other_blob.pos.y - sin(angle)*other_blob.r); 
+      text(str(NN_blob_index), other_blob.pos.x, other_blob.pos.y);  
   }
     
     
@@ -266,7 +323,7 @@ class Blob {
     if (pos.dist(food.pos) < (r + food.r)){
       if (r > food.r){
        r = sqrt(pow(food.energy, 2) + pow(r, 2));
-       vis_r = vis_mult*r; //<>//
+       vis_r = vis_mult*r;
        sp = sp_max/r;
        food.r = 0;
       }
@@ -274,10 +331,22 @@ class Blob {
     
     // check collision with blob vision
     if (pos.dist(food.pos) < (vis_r + food.r)){
+
+      float dist = abs(pos.dist(food.pos) - food.r);
+      float dist_normal = dist/vis_r;
+      int dist_region = int(dist_normal*d_inputs.length);
       float angle = atan2((food.pos.y-pos.y), -(food.pos.x-pos.x)) + PI;
+      float angle_normal = min(angle/TWO_PI, 0.99);
+      int angle_region = int(angle_normal*a_inputs.length);
+      float angle_rounded = angle_region*TWO_PI/a_inputs.length + PI/a_inputs.length;
+      
+      int NN_food_index = dist_region * a_inputs.length + angle_region;
+      NN_food_input[NN_food_index] = r-food.r;
+      
       stroke(200, 100, 100);
-      fill(200, 100, 100);
-      //line(pos.x, pos.y, pos.x + cos(angle)*r, pos.y - sin(angle)*r);
+      fill(255);
+      line(pos.x, pos.y, pos.x + cos(angle)*r, pos.y - sin(angle)*r);
+      //text(NN_food_index, pos.x, pos.y);
     }
   }
   
@@ -319,7 +388,7 @@ class Blob {
   }
     
     c = color(chromosome[c_index], chromosome[c_index+1], chromosome[c_index+2]);
-    c_index += 3; //<>//
+    c_index += 3;
   }
 }
 
