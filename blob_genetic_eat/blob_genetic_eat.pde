@@ -1,13 +1,22 @@
-int pop_no = 50;
-int food_no = 200;
-float food_energy = 2.5;
+import org.jblas.*;
+import org.jblas.exceptions.*;
+import org.jblas.util.*;
+import org.jblas.benchmark.*;
+import org.jblas.ranges.*;
+
+int pop_no = 20;
+int food_no = 20;
+float food_energy = 20;
 ArrayList<Food> foods;
 Population blobs;
 
 // genetic variables
-int d_inputs_n = 5;    // number of distance regions
-int a_inputs_n = 10;    // number of angle regions
-float sp_max = 50;
+int d_inputs_n = 2;    // number of distance regions
+int a_inputs_n = 8;    // number of angle regions
+float sp_max = 20;    // max speed for all blobs, actual speed is sp_max/r
+float r_start = 10;    // radius to start blobs at
+float vis_mult = 3;    // number to multiply radius by to get vision range
+float decay_rate = 0.001;   // rate at which blobs decay
 
 void setup() {
   
@@ -18,7 +27,7 @@ void setup() {
   
   // initialize blobs into population class
   for (int i = 0; i<pop_no; i++){
-    Blob blob = new Blob(color(0, 0, 0), 0, 0, sp_max, "", 0, 0, 0, d_inputs_n, a_inputs_n, "brownian");
+    Blob blob = new Blob(r_start, sp_max, vis_mult, d_inputs_n, a_inputs_n, decay_rate, "NN");
     blob.randomize();
     blobs.individuals.add(blob);
   }
@@ -51,6 +60,7 @@ void draw() {
   fill(255);
   text("blobs left: " + str(blobs.individuals.size()), width/2, height/2);
   text("foods left: " + str(foods.size()), width/2, height/2-12);
+  
 }
 
 class Blob {
@@ -63,28 +73,42 @@ class Blob {
   PVector pos;  // position //<>//
   PVector vel;  // velocity
   float vis_r;  // vision radius
+  float vis_mult;
   float[] d_inputs;  // number of distance input neurons
   float[] a_inputs;  // number of angular input neurons
   float[] blob_neural_input;  // input for blob vision //<>//
   float[] food_neural_input;  // input for food vision
   float[] wall_neural_input;  // input for wall vision
   String dr_mode;  // drive mode
+  int[] sizes = new int[3];
+  float[] chromosome;
+  ArrayList<org.jblas.FloatMatrix> weights = new ArrayList<org.jblas.FloatMatrix>();
+  ArrayList<org.jblas.FloatMatrix> biases = new ArrayList<org.jblas.FloatMatrix>();
+  float decay_rate;
+  org.jblas.FloatMatrix output;
 
-  Blob(color c_, float r_, float sp_, float sp_max_, String name_, float xpos_, float ypos_, float vis_r_, int d_inputs_n, int a_inputs_n, String dr_mode_){
-    c = c_;
-    r = r_;
+  Blob(float r_start, float sp_max_, float vis_mult_, int d_inputs_n, int a_inputs_n, float decay_rate_, String dr_mode_){
+    c = 0;
+    r = r_start;
     sp_max = sp_max_;
     sp = sp_max/r;
-    name = name_;
-    pos = new PVector(xpos_, ypos_);
+    name = "blob";
+    pos = new PVector(random(width), random(height));
     vel = new PVector(0, 0);
-    vis_r = vis_r_;
+    vis_mult = vis_mult_;
+    vis_r = r*vis_mult_;
     d_inputs = new float[d_inputs_n];
     a_inputs = new float[a_inputs_n];
     blob_neural_input = new float[d_inputs_n*a_inputs_n];
     food_neural_input = new float[d_inputs_n*a_inputs_n];
     wall_neural_input = new float[d_inputs_n*a_inputs_n];
+    decay_rate = decay_rate_;
     dr_mode = dr_mode_;
+    sizes[0] = d_inputs_n*a_inputs_n;
+    sizes[1] = 8;
+    sizes[2] = 4;
+    chromosome = new float[(sizes[1] + sizes[2]) + (sizes[0]*sizes[1] + sizes[1]*sizes[2]) + 3];
+    output = org.jblas.FloatMatrix.zeros(4);
 }
   
   void display() {
@@ -92,12 +116,21 @@ class Blob {
     // display vision circle
     stroke(red(c), green(c), blue(c), 20);
     fill(red(c), green(c), blue(c), 20);
-    ellipse(pos.x, pos.y, 2*vis_r, 2*vis_r);
+    ellipse(pos.x, pos.y, r*vis_mult*2, r*vis_mult*2);
     
     // display body
     stroke(c);
     fill(c);
     ellipse(pos.x, pos.y, 2*r, 2*r);
+    
+
+    // display NN output value
+    stroke(255);
+    fill(255);
+    text(str(output.get(0)), pos.x, pos.y+24);
+    text(str(output.get(1)), pos.x, pos.y+12);
+    text(str(output.get(2)), pos.x, pos.y);
+    text(str(output.get(3)), pos.x, pos.y-12);
 
   }
 
@@ -120,6 +153,25 @@ class Blob {
       pos.x = pos.x*(100-sp)/100 + float(mouseX)*sp/100;
       pos.y = pos.y*(100-sp)/100 + float(mouseY)*sp/100; 
     }
+    else if (dr_mode == "NN"){
+      // use neural net to drive blob
+      org.jblas.FloatMatrix input = new org.jblas.FloatMatrix(blob_neural_input);
+      output = feed_forward(weights, biases, input);
+      
+      vel.x += sp*(output.get(0) - output.get(1));
+      vel.y += sp*(output.get(2) - output.get(3));
+      vel.x = constrain(vel.x, -sp, sp);
+      vel.y = constrain(vel.y, -sp, sp);
+      
+      pos.add(vel);
+      
+      for (int i = 0; i<blob_neural_input.length; i++){
+        blob_neural_input[i] = 0; 
+      }
+      
+    }
+    
+    r = max(0, r-decay_rate);
   }
   
   void check_wall_collision(){
@@ -129,15 +181,15 @@ class Blob {
       pos.x = width-r;
       vel.x *= -0.5;
       } 
-    else if (pos.x < r) {
+    if (pos.x < r) {
       pos.x = r;
       vel.x *= -0.5;
       } 
-    else if (pos.y > height-r) {
+    if (pos.y > height-r) {
       pos.y = height-r;
       vel.y *= -0.5;
       } 
-    else if (pos.y < r) {
+    if (pos.y < r) {
       pos.y = r;
       vel.y *= -0.5;
       }
@@ -151,13 +203,13 @@ class Blob {
         
       if (r < other_blob.r){
         other_blob.r = sqrt(pow(other_blob.r, 2) + pow(r, 2));
-        other_blob.vis_r = 2*other_blob.r;
+        other_blob.vis_r = other_blob.vis_mult*other_blob.r;
         other_blob.sp = other_blob.sp_max/other_blob.r;
         r = 0;
       }
       else if (r > other_blob.r){
        r = sqrt(pow(other_blob.r, 2) + pow(r, 2));
-       vis_r = 2*r;
+       vis_r = vis_mult*r;
        sp = sp_max/r;
        other_blob.r = 0;
       } 
@@ -182,6 +234,7 @@ class Blob {
       line(pos.x, pos.y, pos.x + cos(angle_rounded)*r, pos.y - sin(angle_rounded)*r);
       //line(pos.x, pos.y, pos.x + cos(angle)*r, pos.y - sin(angle)*r);
       text(str(neural_input_location), pos.x, pos.y);
+      
     }
     
     if (pos.dist(other_blob.pos) < (r + other_blob.vis_r)){
@@ -195,7 +248,7 @@ class Blob {
       float angle_rounded = angle_region*TWO_PI/other_blob.a_inputs.length + PI/other_blob.a_inputs.length;
       
       int neural_input_location = dist_region * other_blob.a_inputs.length + angle_region;
-      other_blob.blob_neural_input[neural_input_location] = other_blob.r-r; //<>//
+      other_blob.blob_neural_input[neural_input_location] = other_blob.r-r;
       
       stroke(255);
       fill(255); 
@@ -213,7 +266,7 @@ class Blob {
     if (pos.dist(food.pos) < (r + food.r)){
       if (r > food.r){
        r = sqrt(pow(food.energy, 2) + pow(r, 2));
-       vis_r = 2*r; //<>//
+       vis_r = vis_mult*r; //<>//
        sp = sp_max/r;
        food.r = 0;
       }
@@ -229,26 +282,97 @@ class Blob {
   }
   
   void randomize(){
-    // randomize blobs
+    // randomize chromosome
+    int c_index = 0;
+    for (int i = 0; i<(sizes[1] + sizes[2]) + (sizes[0]*sizes[1] + sizes[1]*sizes[2]); i++){
+      chromosome[i] = random(-2, 2); 
+      c_index += 1;
+    }
+    chromosome[c_index] = random(0, 255);
+    chromosome[c_index + 1] = random(0, 255);
+    chromosome[c_index + 2] = random(0, 255);
+    c_index += 3;
     
-    c = color(random(255), random(255), random(255));
-    r = random(5, 50);
-    sp = sp_max/r; //<>//
-    name = "random blob";
-    pos = new PVector(random(width), random(height));
-    vel = new PVector(0, 0);
-    vis_r = r*1.5;
+    // rebuild attributes with new chromosome
+    c_index = 0;
+    for (int i=1; i<sizes.length; i++){  // for each hidden layer and output layer 
+    // add a column matrix of length of current layer to biases array list
+    biases.add(new org.jblas.FloatMatrix(subset(chromosome, c_index, sizes[i]))); 
+    // update chromosome index
+    c_index += sizes[i];
+  }
+  
+  // create weights arraylist of matrices from chromosome
+  for (int i=1; i<sizes.length; i++){  // for each hidden layer and output layer
+    // create temporary empty weight matrix with # of rows = length of current layer and # of columns = length of previous layer
+    int rows = sizes[i];
+    int cols = sizes[i-1];
+    org.jblas.FloatMatrix w = new org.jblas.FloatMatrix(new float[rows][cols]);  
+    for (int j=0; j<rows; j++){  // for each row in weight matrix
+      // add a row onto the weight matrix from chromosome
+      w.putRow(j, new org.jblas.FloatMatrix(subset(chromosome, c_index, cols)));
+      // update chromosome index
+      c_index += cols;
+    }
+    // add weight matrix into the weights array list
+    weights.add(w);
+  }
+    
+    c = color(chromosome[c_index], chromosome[c_index+1], chromosome[c_index+2]);
+    c_index += 3; //<>//
   }
 }
 
 void mousePressed(){
-  Blob mouseblob = new Blob(color(0, 0, 0), 0, 0, sp_max, "", 0, 0, 0, d_inputs_n, a_inputs_n, "mouse");
+  Blob mouseblob = new Blob(r_start, sp_max, vis_mult, d_inputs_n, a_inputs_n, decay_rate, "mouse");;
   mouseblob.randomize();
   mouseblob.r = 10;
-  mouseblob.sp = 100;
+  mouseblob.sp_max = 1000;
+  mouseblob.sp = mouseblob.sp_max/mouseblob.r;
+  mouseblob.pos.x = mouseX;
+  mouseblob.pos.y = mouseY;
   blobs.individuals.add(mouseblob); 
 }
 
 void keyPressed(){
 
+}
+
+org.jblas.FloatMatrix feed_forward(ArrayList<org.jblas.FloatMatrix> weights_, ArrayList<org.jblas.FloatMatrix> biases_, org.jblas.FloatMatrix input_ ){
+  org.jblas.FloatMatrix output;
+  
+  // feed forward through first layer
+  output = weights_.get(0).mmul(input_);
+  output = output.add(biases_.get(0));
+  // apply activation function
+  for (int i = 0; i < output.length; i++){
+    output.put(i, sigmoid_neuron(output.get(i)));
+  }
+  
+  // feed forward through rest of layers
+  for (int i = 1; i < weights_.size(); i++){
+     output = weights_.get(i).mmul(output);
+     output = output.add(biases_.get(i));
+     for (int j = 0; j < output.length; j++){
+        output.put(j, sigmoid_neuron(output.get(j)));
+     }
+  }
+  
+  return output;
+}
+  
+float sigmoid_neuron(float x){
+  float y = 1/(1+exp(-x));
+  return y;
+}
+  
+float perceptron_neuron(float x){
+  float y;
+  if (x > 0){
+    y = 1;
+  }
+  else{
+    y = 0; 
+  }
+  return y;
 }
