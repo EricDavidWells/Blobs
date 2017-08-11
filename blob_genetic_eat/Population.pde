@@ -61,8 +61,64 @@ class Population{
     }
   }
   
-  void evaluate(){
-    
+  void evaluate_fitness(){
+    for (int i = individuals.size()-1; i>=0; i--){
+      Blob individual = individuals.get(i);
+      individual.fitness = individual.max_r + individual.age/1000;
+    }
+  }
+  
+  void reproduction(int new_babies){
+    for (int i = 0; i<new_babies/2.0; i++){
+      
+      // roulette wheel selection
+      
+      // get fitness total from population
+      float roulette_total = 0;
+      for (int j = individuals.size()-1; i>=0; i--){
+        Blob individual = individuals.get(j);
+        roulette_total += individual.fitness;
+      }
+      
+      // spin the wheel twice to select two parents
+      int h = 0;
+      float roulette_spin = random(0, roulette_total);
+      while (roulette_spin > 0){
+        Blob individual = individuals.get(h);
+        roulette_spin -= individual.fitness;
+        h++;
+      }
+      Blob parent_1 = individuals.get(h-1);
+      float[] parent_chromosome_1 = parent_1.chromosome;
+      
+      h = 0;
+      roulette_spin = random(0, roulette_total);
+      while (roulette_spin > 0){
+        Blob individual = individuals.get(h);
+        roulette_spin -= individual.fitness;
+        h++;
+      }
+      Blob parent_2 = individuals.get(h-1);
+      float[] parent_chromosome_2 = parent_2.chromosome;
+      
+      // two point crossover
+      int cross_point_1 = int(random(0, parent_chromosome_1.length));
+      int cross_point_2 = int(random(0, parent_chromosome_2.length));
+      int cross_index_1 = min(cross_point_1, cross_point_2);
+      int cross_index_2 = max(cross_point_1, cross_point_2);
+      float[] crossover_11 = subset(parent_chromosome_1, 0, cross_index_1);
+      float[] crossover_12 = subset(parent_chromosome_1, cross_index_1, (cross_index_2-cross_index_1));
+      float[] crossover_13 = subset(parent_chromosome_1, cross_index_2, (parent_chromosome_1.length-cross_index_2));
+      float[] crossover_21 = subset(parent_chromosome_2, 0, cross_index_1);
+      float[] crossover_22 = subset(parent_chromosome_2, cross_index_1, (cross_index_2-cross_index_1));
+      float[] crossover_23 = subset(parent_chromosome_2, cross_index_2, (parent_chromosome_2.length-cross_index_2));
+      
+      float[] baby_chromosome_1 = concat(concat(crossover_11,crossover_22), crossover_13);
+      float[] baby_chromosome_2 = concat(concat(crossover_21,crossover_12), crossover_23);
+      
+      // mutation
+      
+    }
   }
   
 }

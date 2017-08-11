@@ -4,7 +4,7 @@ import org.jblas.util.*;
 import org.jblas.benchmark.*;
 import org.jblas.ranges.*;
 
-int pop_no = 20;
+int pop_no = 40;
 int food_no = 20;
 float food_energy = 20;
 ArrayList<Food> foods;
@@ -16,7 +16,7 @@ int a_inputs_n = 8;    // number of angle regions
 float sp_max = 20;    // max speed for all blobs, actual speed is sp_max/r
 float r_start = 10;    // radius to start blobs at
 float vis_mult = 3;    // number to multiply radius by to get vision range
-float decay_rate = 0.001;   // rate at which blobs decay
+float decay_rate = 0.05;   // rate at which blobs decay
 
 void setup() {
   
@@ -50,12 +50,17 @@ void draw() {
     food.display();
   }
   
+  // display all blobs
+  blobs.display();
   // drive all blobs
   blobs.drive();
-    // display all blobs
-  blobs.display();
   // check all collisions
   blobs.check_collisions();
+  // evaluate fitness
+  blobs.evaluate_fitness();
+  // selection
+  
+  //reproduction
 
     
   fill(255);
@@ -86,6 +91,10 @@ class Blob {
   ArrayList<org.jblas.FloatMatrix> weights = new ArrayList<org.jblas.FloatMatrix>();
   ArrayList<org.jblas.FloatMatrix> biases = new ArrayList<org.jblas.FloatMatrix>();
   float decay_rate;
+  float max_r;
+  float birthday;
+  float age;
+  float fitness;
   org.jblas.FloatMatrix output;
 
   Blob(float r_start, float sp_max_, float vis_mult_, int d_inputs_n, int a_inputs_n, float decay_rate_, String dr_mode_){
@@ -98,6 +107,9 @@ class Blob {
     vel = new PVector(0, 0);
     vis_mult = vis_mult_;
     vis_r = r*vis_mult_;
+    max_r = 0;
+    birthday = millis();
+    age = 0;
     d_inputs = new float[d_inputs_n];
     a_inputs = new float[a_inputs_n];
     NN_blob_input = new float[d_inputs_n*a_inputs_n];
@@ -105,10 +117,10 @@ class Blob {
     NN_wall_input = new float[d_inputs_n*a_inputs_n];
     decay_rate = decay_rate_;
     dr_mode = dr_mode_;
-    sizes[0] = d_inputs_n*a_inputs_n*2;
+    sizes[0] = d_inputs_n*a_inputs_n*3;
     sizes[1] = 8;
     sizes[2] = 4;
-    chromosome = new float[((sizes[1] + sizes[2]) + (sizes[0]*sizes[1] + sizes[1]*sizes[2]))*2 + 3];
+    chromosome = new float[((sizes[1] + sizes[2]) + (sizes[0]*sizes[1] + sizes[1]*sizes[2])) + 3];
     output = org.jblas.FloatMatrix.zeros(4);
 }
   
@@ -137,6 +149,9 @@ class Blob {
 
   void drive() {
     
+    vis_r = vis_mult*r;
+    sp = sp_max/r;
+    
     if (dr_mode == "brownian"){
     // random brownian movement
     vel.x += random(-1, 1)*sp;
@@ -156,14 +171,19 @@ class Blob {
     }
     else if (dr_mode == "NN"){
       // use neural net to drive blob
-      org.jblas.FloatMatrix input = new org.jblas.FloatMatrix(concat(NN_blob_input, NN_food_input));
+      org.jblas.FloatMatrix input = new org.jblas.FloatMatrix(concat(concat(NN_blob_input, NN_food_input), NN_wall_input));
       output = feed_forward(weights, biases, input);
       
-      vel.x += sp*(output.get(0) - output.get(1));
-      vel.y += sp*(output.get(2) - output.get(3));
+      //vel.x += sp*(output.get(0) - output.get(1));
+      //vel.y += sp*(output.get(2) - output.get(3));
+      //vel.x = constrain(vel.x, -sp, sp);
+      //vel.y = constrain(vel.y, -sp, sp);
+      
+      vel.x = sp*(output.get(0) - output.get(1));
+      vel.y = sp*(output.get(2) - output.get(3));
       vel.x = constrain(vel.x, -sp, sp);
       vel.y = constrain(vel.y, -sp, sp);
-      
+           
       pos.add(vel);
       
       for (int i = 0; i<NN_blob_input.length; i++){
@@ -178,7 +198,18 @@ class Blob {
       
     }
     
-    r = max(0, r-decay_rate);
+    max_r = max(max_r, r);
+    age += (millis()-birthday); 
+    fill(255);
+    
+    //print(age); print(" "); println(max_r);
+    float decay_amount = max(sqrt((pow(vel.x, 2) + pow(vel.y, 2)))/sp*decay_rate, (age/1000)*0.000001);
+    println(decay_amount);
+    text(str(decay_amount), pos.x, pos.y);
+    r = max(0, r-decay_amount);
+    if (r<2.5){
+      r = 0;
+    }
   }
   
   void check_wall_collision(){
@@ -260,14 +291,10 @@ class Blob {
         
       if (r < other_blob.r){
         other_blob.r = sqrt(pow(other_blob.r, 2) + pow(r, 2));
-        other_blob.vis_r = other_blob.vis_mult*other_blob.r;
-        other_blob.sp = other_blob.sp_max/other_blob.r;
         r = 0;
       }
       else if (r > other_blob.r){
-       r = sqrt(pow(other_blob.r, 2) + pow(r, 2));
-       vis_r = vis_mult*r;
-       sp = sp_max/r;
+       r = sqrt(pow(other_blob.r, 2) + pow(r, 2));  
        other_blob.r = 0;
       } 
     }
@@ -276,7 +303,7 @@ class Blob {
     if (pos.dist(other_blob.pos) < (vis_r + other_blob.r)){
       
       float dist = abs(pos.dist(other_blob.pos) - other_blob.r);
-      float dist_normal = dist/vis_r;
+      float dist_normal = min(dist/vis_r, 0.99);
       int dist_region = int(dist_normal*d_inputs.length);
       float angle = atan2((other_blob.pos.y-pos.y), -(other_blob.pos.x-pos.x)) + PI;
       float angle_normal = min(angle/TWO_PI, 0.99);
@@ -290,14 +317,14 @@ class Blob {
       fill(255);
       //line(pos.x, pos.y, pos.x + cos(angle_rounded)*r, pos.y - sin(angle_rounded)*r);
       line(pos.x, pos.y, pos.x + cos(angle)*r, pos.y - sin(angle)*r);
-      text(str(NN_blob_index), pos.x, pos.y);
+      //text(str(NN_blob_index), pos.x, pos.y);
       
     }
     
     if (pos.dist(other_blob.pos) < (r + other_blob.vis_r)){
      
       float dist = abs(other_blob.pos.dist(pos) - r);
-      float dist_normal = dist/other_blob.vis_r;
+      float dist_normal = min(dist/other_blob.vis_r, 0.99);
       int dist_region = int(dist_normal*other_blob.d_inputs.length);
       float angle = atan2((pos.y-other_blob.pos.y), -(pos.x-other_blob.pos.x)) + PI;
       float angle_normal = min(angle/TWO_PI, 0.99);
@@ -311,7 +338,7 @@ class Blob {
       fill(255); 
       //line(other_blob.pos.x, other_blob.pos.y, other_blob.pos.x + cos(angle_rounded)*other_blob.r, other_blob.pos.y - sin(angle_rounded)*other_blob.r);
       line(other_blob.pos.x, other_blob.pos.y, other_blob.pos.x + cos(angle)*other_blob.r, other_blob.pos.y - sin(angle)*other_blob.r); 
-      text(str(NN_blob_index), other_blob.pos.x, other_blob.pos.y);  
+      //text(str(NN_blob_index), other_blob.pos.x, other_blob.pos.y);  
   }
     
     
@@ -323,8 +350,6 @@ class Blob {
     if (pos.dist(food.pos) < (r + food.r)){
       if (r > food.r){
        r = sqrt(pow(food.energy, 2) + pow(r, 2));
-       vis_r = vis_mult*r;
-       sp = sp_max/r;
        food.r = 0;
       }
     }
@@ -333,7 +358,7 @@ class Blob {
     if (pos.dist(food.pos) < (vis_r + food.r)){
 
       float dist = abs(pos.dist(food.pos) - food.r);
-      float dist_normal = dist/vis_r;
+      float dist_normal = min(dist/vis_r, 0.99);
       int dist_region = int(dist_normal*d_inputs.length);
       float angle = atan2((food.pos.y-pos.y), -(food.pos.x-pos.x)) + PI;
       float angle_normal = min(angle/TWO_PI, 0.99);
