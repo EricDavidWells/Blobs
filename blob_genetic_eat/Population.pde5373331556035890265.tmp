@@ -64,18 +64,18 @@ class Population{
   void evaluate_fitness(){
     for (int i = individuals.size()-1; i>=0; i--){
       Blob individual = individuals.get(i);
-      individual.fitness = 10*individual.max_r + individual.age/1000;
+      individual.fitness = individual.max_r + individual.age/1000;
     }
   }
   
-  void reproduce(){
-    if (individuals.size() <= pop_no-2){
+  void reproduction(int new_babies){
+    for (int i = 0; i<new_babies/2.0; i++){
       
       // roulette wheel selection
       
       // get fitness total from population
       float roulette_total = 0;
-      for (int j = individuals.size()-1; j>=0; j--){
+      for (int j = individuals.size()-1; i>=0; i--){
         Blob individual = individuals.get(j);
         roulette_total += individual.fitness;
       }
@@ -116,13 +116,6 @@ class Population{
       float[] baby_chromosome_1 = concat(concat(crossover_11,crossover_22), crossover_13);
       float[] baby_chromosome_2 = concat(concat(crossover_21,crossover_12), crossover_23);
       
-      baby_chromosome_1[baby_chromosome_1.length-3] = parent_chromosome_1[baby_chromosome_1.length-3];
-      baby_chromosome_1[baby_chromosome_1.length-2] = parent_chromosome_1[baby_chromosome_1.length-2];
-      baby_chromosome_1[baby_chromosome_1.length-1] = parent_chromosome_1[baby_chromosome_1.length-1];
-      baby_chromosome_1[baby_chromosome_2.length-3] = parent_chromosome_2[baby_chromosome_2.length-3];
-      baby_chromosome_1[baby_chromosome_2.length-2] = parent_chromosome_2[baby_chromosome_2.length-2];
-      baby_chromosome_1[baby_chromosome_2.length-1] = parent_chromosome_2[baby_chromosome_2.length-1];
-      
       // mutation 
       for (int j = 0; j<baby_chromosome_1.length; j++){
         float mutation = random(0, 1);
@@ -136,15 +129,6 @@ class Population{
           baby_chromosome_2[j] = random(-2, 2); 
         }
       }
-    Blob blob1 = new Blob(r_start, sp_max, vis_mult, d_inputs_n, a_inputs_n, "NN");
-    blob1.chromosome = baby_chromosome_1;
-    blob1.rebuild();
-    individuals.add(blob1);
-    
-    Blob blob2 = new Blob(r_start, sp_max, vis_mult, d_inputs_n, a_inputs_n, "NN");
-    blob2.chromosome = baby_chromosome_2;
-    blob2.rebuild();
-    individuals.add(blob2);
     }
   }
   

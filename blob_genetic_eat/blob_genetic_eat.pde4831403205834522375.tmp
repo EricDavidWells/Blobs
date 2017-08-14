@@ -5,8 +5,8 @@ import org.jblas.benchmark.*;
 import org.jblas.ranges.*;
 
 int pop_no = 40;
-int food_no = 50;
-float food_energy = 10;
+int food_no = 20;
+float food_energy = 20;
 ArrayList<Food> foods;
 Population blobs;
 
@@ -16,7 +16,7 @@ int a_inputs_n = 8;    // number of angle regions
 float sp_max = 20;    // max speed for all blobs, actual speed is sp_max/r
 float r_start = 10;    // radius to start blobs at
 float vis_mult = 3;    // number to multiply radius by to get vision range
-float move_decay_rate = 0.0025;   // rate at which blobs decay
+float move_decay_rate = 0.05;   // rate at which blobs decay
 float age_decay_rate = 0.000001;
 float mutation_rate = 0.025;
 
@@ -410,7 +410,7 @@ class Blob {
     weights.add(w);
   }
     
-    c = color(max(chromosome[c_index], 20), max(chromosome[c_index+1], 20), max(chromosome[c_index+2], 20));
+    c = color(chromosome[c_index], chromosome[c_index+1], chromosome[c_index+2]);
     c_index += 3;
   }
 }
