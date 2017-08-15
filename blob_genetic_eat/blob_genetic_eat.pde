@@ -13,6 +13,7 @@ Population blobs;
 // genetic variables
 int d_inputs_n = 1;    // number of distance regions
 int a_inputs_n = 8;    // number of angle regions
+int[] sizes = {d_inputs_n*a_inputs_n*3, 6, 4};
 float sp_max = 20;    // max speed for all blobs, actual speed is sp_max/r
 float r_start = 10;    // radius to start blobs at
 float vis_mult = 3;    // number to multiply radius by to get vision range
@@ -32,7 +33,7 @@ void setup() {
   
   // initialize blobs into population class
   for (int i = 0; i<pop_no; i++){
-    Blob blob = new Blob(r_start, sp_max, vis_mult, d_inputs_n, a_inputs_n, "NN");
+    Blob blob = new Blob(r_start, sp_max, vis_mult, d_inputs_n, a_inputs_n, "NN", sizes);
     blob.randomize();
     blob.rebuild();
     blobs.individuals.add(blob);
@@ -104,7 +105,7 @@ class Blob {
   float fitness;
   org.jblas.FloatMatrix output;
 
-  Blob(float r_start, float sp_max_, float vis_mult_, int d_inputs_n, int a_inputs_n, String dr_mode_){
+  Blob(float r_start, float sp_max_, float vis_mult_, int d_inputs_n, int a_inputs_n, String dr_mode_, int[] sizes_){
     c = 0;
     r = r_start;
     sp_max = sp_max_;
@@ -123,9 +124,10 @@ class Blob {
     NN_food_input = new float[d_inputs_n*a_inputs_n];
     NN_wall_input = new float[d_inputs_n*a_inputs_n];
     dr_mode = dr_mode_;
-    sizes[0] = d_inputs_n*a_inputs_n*3;
-    sizes[1] = 8;
-    sizes[2] = 4;
+    //sizes[0] = d_inputs_n*a_inputs_n*3;
+    //sizes[1] = 8;
+    //sizes[2] = 4;
+    sizes = sizes_;
     chromosome = new float[((sizes[1] + sizes[2]) + (sizes[0]*sizes[1] + sizes[1]*sizes[2])) + 3];
     output = org.jblas.FloatMatrix.zeros(4);
 }
@@ -239,7 +241,7 @@ class Blob {
       
     stroke(255);
     fill(255);  
-    // check vision collision
+    // check vision collision //<>//
     if (pos.x > width-vis_r) {
       float dist_normal = abs(width-pos.x)/vis_r; //<>//
       int dist_region = int(dist_normal*d_inputs.length);
@@ -445,7 +447,7 @@ void keyPressed(){
     }
   }
   if (key == 'n'){
-    Blob mouseblob = new Blob(r_start, sp_max, vis_mult, d_inputs_n, a_inputs_n, "mouse");
+    Blob mouseblob = new Blob(r_start, sp_max, vis_mult, d_inputs_n, a_inputs_n, "mouse", sizes);
     mouseblob.randomize();
     mouseblob.rebuild();
     mouseblob.r = 10;

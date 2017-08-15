@@ -35,12 +35,12 @@ class Population{
         
         // remove dead blobs from array
         if (blob.r <= 0){
-          blobs.individuals.remove(i);  //<>//
+          blobs.individuals.remove(i);  //<>// //<>//
           break;
         }
         // remove dead blobs from array
         if (other_blob.r <= 0){
-          blobs.individuals.remove(j); //<>//
+          blobs.individuals.remove(j); //<>// //<>//
           i--;
           continue;
         } 
@@ -65,7 +65,7 @@ class Population{
   void evaluate_fitness(){
     for (int i = individuals.size()-1; i>=0; i--){
       Blob individual = individuals.get(i);
-      individual.fitness = 5*pow((individual.max_r-r_start), 1.5) + individual.age/30;
+      individual.fitness = pow((individual.max_r-r_start), 1.5) + individual.age/30;
     }
   }
   
@@ -84,12 +84,12 @@ class Population{
       float[] baby_chromosome_2 = random_mutation(baby_chromosomes[1], mutation_rate);
       
       // create new blobs
-      Blob baby_blob1 = new Blob(r_start, sp_max, vis_mult, d_inputs_n, a_inputs_n, "NN");
+      Blob baby_blob1 = new Blob(r_start, sp_max, vis_mult, d_inputs_n, a_inputs_n, "NN", sizes);
       baby_blob1.chromosome = baby_chromosome_1;
       baby_blob1.rebuild();
       individuals.add(baby_blob1);
       
-      Blob baby_blob2 = new Blob(r_start, sp_max, vis_mult, d_inputs_n, a_inputs_n, "NN");
+      Blob baby_blob2 = new Blob(r_start, sp_max, vis_mult, d_inputs_n, a_inputs_n, "NN", sizes);
       baby_blob2.chromosome = baby_chromosome_2;
       baby_blob2.rebuild();
       individuals.add(baby_blob2);
