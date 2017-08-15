@@ -17,6 +17,7 @@ class Population{
       Blob individual = individuals.get(i);
       individual.display();
     }
+    
   }
   
   void check_collisions(){
@@ -64,88 +65,89 @@ class Population{
   void evaluate_fitness(){
     for (int i = individuals.size()-1; i>=0; i--){
       Blob individual = individuals.get(i);
-      individual.fitness = 10*individual.max_r + individual.age/1000;
+      individual.fitness = 5*pow((individual.max_r-r_start), 1.5) + individual.age/30;
     }
   }
   
   void reproduce(){
     if (individuals.size() <= pop_no-2){
       
-      // roulette wheel selection
+      // selection   
+      Blob parent_1 = roulette_wheel_selection(individuals);
+      Blob parent_2 = roulette_wheel_selection(individuals);
       
-      // get fitness total from population
-      float roulette_total = 0;
-      for (int j = individuals.size()-1; j>=0; j--){
-        Blob individual = individuals.get(j);
-        roulette_total += individual.fitness;
-      }
+      // crossover
+      float [][] baby_chromosomes = two_point_crossover(parent_1.chromosome, parent_2.chromosome);
       
-      // spin the wheel twice to select two parents
-      int h = 0;
-      float roulette_spin = random(0, roulette_total);
-      while (roulette_spin > 0){
-        Blob individual = individuals.get(h);
-        roulette_spin -= individual.fitness;
-        h++;
-      }
-      Blob parent_1 = individuals.get(h-1);
-      float[] parent_chromosome_1 = parent_1.chromosome;
+      // mutation
+      float[] baby_chromosome_1 = random_mutation(baby_chromosomes[0], mutation_rate);
+      float[] baby_chromosome_2 = random_mutation(baby_chromosomes[1], mutation_rate);
       
-      h = 0;
-      roulette_spin = random(0, roulette_total);
-      while (roulette_spin > 0){
-        Blob individual = individuals.get(h);
-        roulette_spin -= individual.fitness;
-        h++;
-      }
-      Blob parent_2 = individuals.get(h-1);
-      float[] parent_chromosome_2 = parent_2.chromosome;
+      // create new blobs
+      Blob baby_blob1 = new Blob(r_start, sp_max, vis_mult, d_inputs_n, a_inputs_n, "NN");
+      baby_blob1.chromosome = baby_chromosome_1;
+      baby_blob1.rebuild();
+      individuals.add(baby_blob1);
       
-      // two point crossover
-      int cross_point_1 = int(random(0, parent_chromosome_1.length));
-      int cross_point_2 = int(random(0, parent_chromosome_2.length));
-      int cross_index_1 = min(cross_point_1, cross_point_2);
-      int cross_index_2 = max(cross_point_1, cross_point_2);
-      float[] crossover_11 = subset(parent_chromosome_1, 0, cross_index_1);
-      float[] crossover_12 = subset(parent_chromosome_1, cross_index_1, (cross_index_2-cross_index_1));
-      float[] crossover_13 = subset(parent_chromosome_1, cross_index_2, (parent_chromosome_1.length-cross_index_2));
-      float[] crossover_21 = subset(parent_chromosome_2, 0, cross_index_1);
-      float[] crossover_22 = subset(parent_chromosome_2, cross_index_1, (cross_index_2-cross_index_1));
-      float[] crossover_23 = subset(parent_chromosome_2, cross_index_2, (parent_chromosome_2.length-cross_index_2));
-      
-      float[] baby_chromosome_1 = concat(concat(crossover_11,crossover_22), crossover_13);
-      float[] baby_chromosome_2 = concat(concat(crossover_21,crossover_12), crossover_23);
-      
-      baby_chromosome_1[baby_chromosome_1.length-3] = parent_chromosome_1[baby_chromosome_1.length-3];
-      baby_chromosome_1[baby_chromosome_1.length-2] = parent_chromosome_1[baby_chromosome_1.length-2];
-      baby_chromosome_1[baby_chromosome_1.length-1] = parent_chromosome_1[baby_chromosome_1.length-1];
-      baby_chromosome_1[baby_chromosome_2.length-3] = parent_chromosome_2[baby_chromosome_2.length-3];
-      baby_chromosome_1[baby_chromosome_2.length-2] = parent_chromosome_2[baby_chromosome_2.length-2];
-      baby_chromosome_1[baby_chromosome_2.length-1] = parent_chromosome_2[baby_chromosome_2.length-1];
-      
-      // mutation 
-      for (int j = 0; j<baby_chromosome_1.length; j++){
-        float mutation = random(0, 1);
-        if (mutation < mutation_rate){
-          baby_chromosome_1[j] = random(-2, 2); 
-        }
-      }
-      for (int j = 0; j<baby_chromosome_2.length; j++){
-        float mutation = random(0, 1);
-        if (mutation < mutation_rate){
-          baby_chromosome_2[j] = random(-2, 2); 
-        }
-      }
-    Blob blob1 = new Blob(r_start, sp_max, vis_mult, d_inputs_n, a_inputs_n, "NN");
-    blob1.chromosome = baby_chromosome_1;
-    blob1.rebuild();
-    individuals.add(blob1);
-    
-    Blob blob2 = new Blob(r_start, sp_max, vis_mult, d_inputs_n, a_inputs_n, "NN");
-    blob2.chromosome = baby_chromosome_2;
-    blob2.rebuild();
-    individuals.add(blob2);
+      Blob baby_blob2 = new Blob(r_start, sp_max, vis_mult, d_inputs_n, a_inputs_n, "NN");
+      baby_blob2.chromosome = baby_chromosome_2;
+      baby_blob2.rebuild();
+      individuals.add(baby_blob2);
     }
   }
   
+}
+
+Blob roulette_wheel_selection(ArrayList<Blob> individuals){
+  // get fitness total from population
+  float roulette_total = 0;
+  for (int j = individuals.size()-1; j>=0; j--){
+    Blob individual = individuals.get(j);
+    roulette_total += individual.fitness;
+  }
+  
+  // spin the wheel twice to select two parents
+  int h = 0;
+  float roulette_spin = random(0, roulette_total);
+  while (roulette_spin > 0){
+    Blob individual = individuals.get(h);
+    roulette_spin -= individual.fitness;
+    h++;
+  }
+  Blob parent = individuals.get(h-1);
+  return parent;
+}
+
+float[][] two_point_crossover(float[] chromosome_1, float[] chromosome_2){
+
+  int cross_point_1 = int(random(0, chromosome_1.length));
+  int cross_point_2 = int(random(0, chromosome_2.length));
+  int cross_index_1 = min(cross_point_1, cross_point_2);
+  int cross_index_2 = max(cross_point_1, cross_point_2);
+  float[] crossover_11 = subset(chromosome_1, 0, cross_index_1);
+  float[] crossover_12 = subset(chromosome_1, cross_index_1, (cross_index_2-cross_index_1));
+  float[] crossover_13 = subset(chromosome_1, cross_index_2, (chromosome_1.length-cross_index_2));
+  float[] crossover_21 = subset(chromosome_2, 0, cross_index_1);
+  float[] crossover_22 = subset(chromosome_2, cross_index_1, (cross_index_2-cross_index_1));
+  float[] crossover_23 = subset(chromosome_2, cross_index_2, (chromosome_2.length-cross_index_2));
+  
+  float[] new_chromosome_1 = concat(concat(crossover_11,crossover_22), crossover_13);
+  float[] new_chromosome_2 = concat(concat(crossover_21,crossover_12), crossover_23);
+  float[][] new_chromosomes = {new_chromosome_1, new_chromosome_2};
+  return new_chromosomes;
+}
+
+float[] random_mutation(float[] chromosome, float mutation_rate_){
+ for (int j = 0; j<chromosome.length; j++){
+        if (random(0, 1) < mutation_rate_){
+          // if else statement for choosing between random weights and random color
+          if (j < chromosome.length-3){
+          chromosome[j] = random(-2, 2); 
+          }
+          else{
+           chromosome[j] = random(255); 
+          }
+        }
+      }
+  return chromosome;
 }
