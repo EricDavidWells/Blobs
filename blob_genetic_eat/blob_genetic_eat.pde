@@ -13,12 +13,14 @@ Population blobs;
 // genetic variables
 int d_inputs_n = 1;    // number of distance regions
 int a_inputs_n = 8;    // number of angle regions
-int[] sizes = {d_inputs_n*a_inputs_n*3, 6, 4};
+int extra_inputs = 2;
+int[] sizes = {d_inputs_n*a_inputs_n*3 + extra_inputs, 6, 3};
 float sp_max = 20;    // max speed for all blobs, actual speed is sp_max/r
 float r_start = 10;    // radius to start blobs at
 float vis_mult = 3;    // number to multiply radius by to get vision range
-float move_decay_rate = 0.0025;   // rate at which blobs decay
-float age_decay_rate = 0.00005;
+float vis_min = 60;
+float move_decay_rate = 0.025;   // rate at which blobs decay
+float age_decay_rate = 0.0000025;
 float mutation_rate = 0.05;
 
 boolean display_flag = true;
@@ -50,8 +52,6 @@ void setup() {
 
 void draw() {
   background(0);
-
-  
   
   if (display_flag == true){
     // display food
@@ -103,6 +103,7 @@ class Blob {
   float birthday;
   float age;
   float fitness;
+  float direction;
   org.jblas.FloatMatrix output;
 
   Blob(float r_start, float sp_max_, float vis_mult_, int d_inputs_n, int a_inputs_n, String dr_mode_, int[] sizes_){
@@ -130,6 +131,7 @@ class Blob {
     sizes = sizes_;
     chromosome = new float[((sizes[1] + sizes[2]) + (sizes[0]*sizes[1] + sizes[1]*sizes[2])) + 3];
     output = org.jblas.FloatMatrix.zeros(4);
+    direction = random(0, TWO_PI);
 }
   
   void display() {
@@ -137,7 +139,7 @@ class Blob {
     // display vision circle
     stroke(red(c), green(c), blue(c), 20);
     fill(red(c), green(c), blue(c), 20);
-    ellipse(pos.x, pos.y, r*vis_mult*2, r*vis_mult*2);
+    ellipse(pos.x, pos.y, vis_r*2, vis_r*2);
     
     // display body
     stroke(c);
@@ -160,7 +162,7 @@ class Blob {
 
   void drive() {
     
-    vis_r = vis_mult*r;
+    vis_r = max(vis_mult*r, vis_min);
     sp = sp_max/r;
     
     if (dr_mode == "brownian"){
@@ -181,14 +183,28 @@ class Blob {
       pos.y = pos.y*(100-sp)/100 + float(mouseY)*sp/100; 
     }
     else if (dr_mode == "NN"){
+      float[] NN_extra_input = {vel.x*10/sp, vel.y*10/sp};
+      
       // use neural net to drive blob
-      org.jblas.FloatMatrix input = new org.jblas.FloatMatrix(concat(concat(NN_blob_input, NN_food_input), NN_wall_input));
+      org.jblas.FloatMatrix input = new org.jblas.FloatMatrix(concat(concat(NN_blob_input, NN_food_input), concat(NN_wall_input, NN_extra_input)));
       output = feed_forward(weights, biases, input);
       
-      vel.x += sp*(output.get(0) - output.get(1));
-      vel.y += sp*(output.get(2) - output.get(3));
+      direction += (output.get(0) - output.get(1))/10;
+      if (direction >= TWO_PI){
+       direction -= TWO_PI; 
+      }
+      else if (direction <= -TWO_PI){
+       direction += TWO_PI; 
+      }
+      vel.x = (output.get(2)*sp)*cos(direction);
+      vel.y = (output.get(2)*sp)*sin(direction);
       vel.x = constrain(vel.x, -sp, sp);
       vel.y = constrain(vel.y, -sp, sp);
+      
+      //vel.x += sp*(output.get(0) - output.get(1));
+      //vel.y += sp*(output.get(2) - output.get(3));
+      //vel.x = constrain(vel.x, -sp, sp);
+      //vel.y = constrain(vel.y, -sp, sp);
       
       //vel.x = sp*(output.get(0) - output.get(1));
       //vel.y = sp*(output.get(2) - output.get(3));
@@ -212,7 +228,7 @@ class Blob {
     max_r = max(max_r, r);
     age = (frameCount-birthday); 
 
-    float decay_amount = max(sqrt((pow(vel.x, 2) + pow(vel.y, 2)))/sp*move_decay_rate, age*age_decay_rate);
+    float decay_amount = sqrt((pow(vel.x, 2) + pow(vel.y, 2)))/sp*move_decay_rate + age*age_decay_rate;
     r = max(0, r-decay_amount);
     if (r<2.5){
       r = 0;
@@ -225,7 +241,7 @@ class Blob {
     if (pos.x > width-r) {
       pos.x = width-r;
       vel.x *= -0.5;
-      } 
+      }  //<>//
     if (pos.x < r) {
       pos.x = r;
       vel.x *= -0.5;
@@ -241,7 +257,7 @@ class Blob {
       
     stroke(255);
     fill(255);  
-    // check vision collision //<>//
+    // check vision collision
     if (pos.x > width-vis_r) {
       float dist_normal = abs(width-pos.x)/vis_r; //<>//
       int dist_region = int(dist_normal*d_inputs.length);

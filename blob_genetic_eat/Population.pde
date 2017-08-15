@@ -65,7 +65,7 @@ class Population{
   void evaluate_fitness(){
     for (int i = individuals.size()-1; i>=0; i--){
       Blob individual = individuals.get(i);
-      individual.fitness = pow((individual.max_r-r_start), 1.5) + individual.age/30;
+      individual.fitness = 6*pow((individual.max_r-r_start), 1.5) + individual.age/30;
     }
   }
   
