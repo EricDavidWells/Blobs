@@ -12,15 +12,15 @@ Population blobs;
 
 // genetic variables
 int d_inputs_n = 1;    // number of distance regions
-int a_inputs_n = 8;    // number of angle regions
-int extra_inputs = 2;
+int a_inputs_n = 12;    // number of angle regions
+int extra_inputs = 0;
 int[] sizes = {d_inputs_n*a_inputs_n*3 + extra_inputs, 6, 3};
 float sp_max = 20;    // max speed for all blobs, actual speed is sp_max/r
 float r_start = 10;    // radius to start blobs at
 float vis_mult = 3;    // number to multiply radius by to get vision range
 float vis_min = 60;
-float move_decay_rate = 0.025;   // rate at which blobs decay
-float age_decay_rate = 0.0000025;
+float move_decay_rate = 0.0025;   // rate at which blobs decay
+float age_decay_rate = 0.000025;
 float mutation_rate = 0.05;
 
 boolean display_flag = true;
@@ -100,6 +100,7 @@ class Blob {
   ArrayList<org.jblas.FloatMatrix> weights = new ArrayList<org.jblas.FloatMatrix>();
   ArrayList<org.jblas.FloatMatrix> biases = new ArrayList<org.jblas.FloatMatrix>();
   float max_r;
+  float energy_consumed;
   float birthday;
   float age;
   float fitness;
@@ -117,6 +118,7 @@ class Blob {
     vis_mult = vis_mult_;
     vis_r = r*vis_mult_;
     max_r = 0;
+    energy_consumed = 0;
     birthday = frameCount;
     age = 0;
     d_inputs = new float[d_inputs_n];
@@ -166,16 +168,16 @@ class Blob {
     sp = sp_max/r;
     
     if (dr_mode == "brownian"){
-    // random brownian movement
-    vel.x += random(-1, 1)*sp;
-    vel.y += random(-1, 1)*sp;
+      // random brownian movement
+      vel.x += random(-1, 1)*sp;
+      vel.y += random(-1, 1)*sp;
+        
+      // limit speed
+      vel.x = constrain(vel.x, -sp, sp);
+      vel.y = constrain(vel.y, -sp, sp);  
       
-    // limit speed
-    vel.x = constrain(vel.x, -sp, sp);
-    vel.y = constrain(vel.y, -sp, sp);  
-    
-    // update position
-    pos.add(vel);
+      // update position
+      pos.add(vel);
     }
     else if (dr_mode == "mouse"){
       // follow mouse movement
@@ -183,7 +185,8 @@ class Blob {
       pos.y = pos.y*(100-sp)/100 + float(mouseY)*sp/100; 
     }
     else if (dr_mode == "NN"){
-      float[] NN_extra_input = {vel.x*10/sp, vel.y*10/sp};
+      //float[] NN_extra_input = {sqrt(pow(vel.x, 2) + pow(vel.y, 2))*10/sp, 10*direction};
+      float[] NN_extra_input = {};
       
       // use neural net to drive blob
       org.jblas.FloatMatrix input = new org.jblas.FloatMatrix(concat(concat(NN_blob_input, NN_food_input), concat(NN_wall_input, NN_extra_input)));
@@ -238,10 +241,10 @@ class Blob {
   void check_wall_collision(){
     // check if collision with edges of screen and adjust position to not exceed it
     
-    if (pos.x > width-r) {
+    if (pos.x > width-r) { //<>//
       pos.x = width-r;
       vel.x *= -0.5;
-      }  //<>//
+      } 
     if (pos.x < r) {
       pos.x = r;
       vel.x *= -0.5;
@@ -266,7 +269,7 @@ class Blob {
       int angle_region = int(angle_normal*a_inputs.length);
       float angle_rounded = angle_region*TWO_PI/a_inputs.length + PI/a_inputs.length;
       int NN_wall_index = dist_region * a_inputs.length + angle_region;
-      NN_wall_input[NN_wall_index] = 100;
+      NN_wall_input[NN_wall_index] = 10/dist_normal;
       //text(str(NN_wall_index), pos.x, pos.y);
       } 
     if (pos.x < vis_r) {
@@ -277,7 +280,7 @@ class Blob {
       int angle_region = int(angle_normal*a_inputs.length);
       float angle_rounded = angle_region*TWO_PI/a_inputs.length + PI/a_inputs.length;
       int NN_wall_index = dist_region * a_inputs.length + angle_region;
-      NN_wall_input[NN_wall_index] = 100;
+      NN_wall_input[NN_wall_index] = 10/dist_normal;
       //text(str(NN_wall_index), pos.x, pos.y);
       }
     if (pos.y > height-vis_r) {
@@ -288,7 +291,7 @@ class Blob {
       int angle_region = int(angle_normal*a_inputs.length);
       float angle_rounded = angle_region*TWO_PI/a_inputs.length + PI/a_inputs.length;
       int NN_wall_index = dist_region * a_inputs.length + angle_region;
-      NN_wall_input[NN_wall_index] = 100;
+      NN_wall_input[NN_wall_index] = 10/dist_normal;
       //text(str(NN_wall_index), pos.x, pos.y);
     } 
     if (pos.y < vis_r) {
@@ -299,7 +302,7 @@ class Blob {
       int angle_region = int(angle_normal*a_inputs.length);
       float angle_rounded = angle_region*TWO_PI/a_inputs.length + PI/a_inputs.length;
       int NN_wall_index = dist_region * a_inputs.length + angle_region;
-      NN_wall_input[NN_wall_index] = 100;
+      NN_wall_input[NN_wall_index] = 10/dist_normal;
       //text(str(NN_wall_index), pos.x, pos.y);
     }
   }
@@ -314,10 +317,12 @@ class Blob {
         
       if (r < other_blob.r){
         other_blob.r = sqrt(pow(other_blob.r, 2) + pow(r, 2));
+        other_blob.energy_consumed += r;
         r = 0;
       }
       else if (r > other_blob.r){
        r = sqrt(pow(other_blob.r, 2) + pow(r, 2));  
+       energy_consumed += other_blob.r;
        other_blob.r = 0;
       } 
     }
@@ -377,6 +382,7 @@ class Blob {
     if (pos.dist(food.pos) < (r + food.r)){
       if (r > food.r){
        r = sqrt(pow(food.energy, 2) + pow(r, 2));
+       energy_consumed += food.energy;
        food.r = 0;
       }
     }
@@ -408,7 +414,7 @@ class Blob {
     // randomize chromosome
     int c_index = 0;
     for (int i = 0; i<(sizes[1] + sizes[2]) + (sizes[0]*sizes[1] + sizes[1]*sizes[2]); i++){
-      chromosome[i] = random(-2, 2); 
+      chromosome[i] = random(-1, 1); 
       c_index += 1;
     }
     chromosome[c_index] = random(0, 255);

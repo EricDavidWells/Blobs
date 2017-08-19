@@ -65,7 +65,7 @@ class Population{
   void evaluate_fitness(){
     for (int i = individuals.size()-1; i>=0; i--){
       Blob individual = individuals.get(i);
-      individual.fitness = 6*pow((individual.max_r-r_start), 1.5) + individual.age/30;
+      individual.fitness = 10*pow((individual.max_r-r_start), 1.5) + individual.energy_consumed + individual.age/30;
     }
   }
   
@@ -142,7 +142,7 @@ float[] random_mutation(float[] chromosome, float mutation_rate_){
         if (random(0, 1) < mutation_rate_){
           // if else statement for choosing between random weights and random color
           if (j < chromosome.length-3){
-          chromosome[j] = random(-2, 2); 
+          chromosome[j] = random(-10, 10); 
           }
           else{
            chromosome[j] = random(255); 
