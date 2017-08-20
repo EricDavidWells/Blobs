@@ -1,5 +1,6 @@
 class Population{
   ArrayList<Blob> individuals;
+  int generation = 0;
   
   Population(){
     individuals = new ArrayList<Blob>();
@@ -35,12 +36,12 @@ class Population{
         
         // remove dead blobs from array
         if (blob.r <= 0){
-          blobs.individuals.remove(i);  //<>// //<>//
+          blobs.individuals.remove(i);  //<>//
           break;
         }
         // remove dead blobs from array
         if (other_blob.r <= 0){
-          blobs.individuals.remove(j); //<>// //<>//
+          blobs.individuals.remove(j); //<>//
           i--;
           continue;
         }
@@ -71,13 +72,17 @@ class Population{
       total_fitness += individual.fitness;
       max_fitness = max(max_fitness, individual.fitness);
     }
-    
-    writer.println(str(max_fitness) + ',' + str(total_fitness) + ',' + str(millis()/1000.00));
+    String line = str(max_fitness) + ',' + str(total_fitness) + ',' + str(millis()/1000.00);
+    print('l');
+    writer.println(line);
+    writer.flush();
   }
   
   void reproduce(){
     if (individuals.size() <= pop_no-2){
       
+      evaluate_fitness();  
+  
       // selection   
       Blob parent_1 = roulette_wheel_selection(individuals);
       Blob parent_2 = roulette_wheel_selection(individuals);
@@ -99,7 +104,9 @@ class Population{
       baby_blob2.chromosome = baby_chromosome_2;
       baby_blob2.rebuild();
       individuals.add(baby_blob2);
+      generation += 1;
     }
+    
   }
   
 }
