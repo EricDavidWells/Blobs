@@ -14,25 +14,28 @@ Population blobs;
 int d_inputs_n = 1;    // number of distance regions
 int a_inputs_n = 12;    // number of angle regions
 int extra_inputs = 0;
-int[] sizes = {d_inputs_n*a_inputs_n*3 + extra_inputs, 6, 3};
+int[] sizes = {d_inputs_n*a_inputs_n*3 + extra_inputs, 6, 2};
 float sp_max = 20;    // max speed for all blobs, actual speed is sp_max/r
 float r_start = 10;    // radius to start blobs at
 float vis_mult = 3;    // number to multiply radius by to get vision range
 float vis_min = 60;
-float move_decay_rate = 0.0025;   // rate at which blobs decay
-float age_decay_rate = 0.000025;
+float move_decay_rate = 0.0100;   // rate at which blobs decay
+float age_decay_rate = 0.000005;
 float mutation_rate = 0.05;
 
 boolean display_flag = true;
+
+PrintWriter writer;
 
 void setup() {
   
   // initialize size of window
   size(1000,700);
   frameRate(20000);
+  String filename = str(year()) + '-' + str(month()) + '-' + str(day()) + '_' + str(hour()) + 'h' + str(minute()) + "_fitness_data.txt";
+  writer = createWriter("fitness_data\\" + filename);
   
   blobs = new Population();
-  
   // initialize blobs into population class
   for (int i = 0; i<pop_no; i++){
     Blob blob = new Blob(r_start, sp_max, vis_mult, d_inputs_n, a_inputs_n, "NN", sizes);
@@ -113,7 +116,7 @@ class Blob {
     sp_max = sp_max_;
     sp = sp_max/r;
     name = "blob";
-    pos = new PVector(random(width), random(height));
+    pos = new PVector(random(r_start, width-r_start), random(r_start, height-r_start));
     vel = new PVector(0, 0);
     vis_mult = vis_mult_;
     vis_r = r*vis_mult_;
@@ -150,7 +153,13 @@ class Blob {
     
     stroke(255);
     fill(255);
-    text(str(round(fitness)), pos.x, pos.y);
+    //text(str(round(fitness)), pos.x, pos.y);
+
+    stroke(0, 0, 255);
+    fill(0, 0, 255);
+    strokeWeight(5);
+    line(pos.x, pos.y, cos(direction)*r + pos.x, -sin(direction)*r + pos.y);
+    strokeWeight(2);
 
     // display NN output values
     //stroke(255);
@@ -191,16 +200,22 @@ class Blob {
       // use neural net to drive blob
       org.jblas.FloatMatrix input = new org.jblas.FloatMatrix(concat(concat(NN_blob_input, NN_food_input), concat(NN_wall_input, NN_extra_input)));
       output = feed_forward(weights, biases, input);
-      
-      direction += (output.get(0) - output.get(1))/10;
+      try{
+        direction += (map(output.get(0), 0, 1, -1, 1));
+      }
+      catch (){ //<>//
+        print("error");
+      }
+        
+      }
       if (direction >= TWO_PI){
        direction -= TWO_PI; 
       }
-      else if (direction <= -TWO_PI){
+      else if (direction <= 0){
        direction += TWO_PI; 
       }
-      vel.x = (output.get(2)*sp)*cos(direction);
-      vel.y = (output.get(2)*sp)*sin(direction);
+      vel.x = (output.get(1)*sp)*cos(direction);
+      vel.y = -(output.get(1)*sp)*sin(direction);
       vel.x = constrain(vel.x, -sp, sp);
       vel.y = constrain(vel.y, -sp, sp);
       
@@ -226,7 +241,7 @@ class Blob {
         NN_wall_input[i] = 0; 
       }
       
-    }
+    } //<>//
     
     max_r = max(max_r, r);
     age = (frameCount-birthday); 
@@ -241,7 +256,7 @@ class Blob {
   void check_wall_collision(){
     // check if collision with edges of screen and adjust position to not exceed it
     
-    if (pos.x > width-r) { //<>//
+    if (pos.x > width-r) {
       pos.x = width-r;
       vel.x *= -0.5;
       } 
@@ -264,45 +279,77 @@ class Blob {
     if (pos.x > width-vis_r) {
       float dist_normal = abs(width-pos.x)/vis_r; //<>//
       int dist_region = int(dist_normal*d_inputs.length);
-      float angle = atan2(0, -(width-pos.x)) + PI;
+      //float angle = atan2(0, -(width-pos.x)) + PI;
+      float angle = direction - (atan2(0, -(width-pos.x)) + PI);
+      if (angle > PI){
+       angle = -TWO_PI+angle; 
+      }
+      else if (angle < -PI){
+        angle = TWO_PI + angle; 
+      }
+      angle += PI;
       float angle_normal = min(angle/TWO_PI, 0.99);
       int angle_region = int(angle_normal*a_inputs.length);
       float angle_rounded = angle_region*TWO_PI/a_inputs.length + PI/a_inputs.length;
       int NN_wall_index = dist_region * a_inputs.length + angle_region;
-      NN_wall_input[NN_wall_index] = 10/dist_normal;
+      NN_wall_input[NN_wall_index] = min(0.1/dist_normal, 1);
       //text(str(NN_wall_index), pos.x, pos.y);
       } 
     if (pos.x < vis_r) {
       float dist_normal = abs(pos.x)/vis_r;
       int dist_region = int(dist_normal*d_inputs.length);
-      float angle = atan2(0, -(-pos.x)) + PI;
+      //float angle = atan2(0, -(-pos.x)) + PI;
+      float angle = direction - (atan2(0, -(-pos.x)) + PI);
+      if (angle > PI){
+       angle = -TWO_PI+angle; 
+      }
+      else if (angle < -PI){
+        angle = TWO_PI + angle; 
+      }
+      angle += PI;
       float angle_normal = min(angle/TWO_PI, 0.99);
       int angle_region = int(angle_normal*a_inputs.length);
       float angle_rounded = angle_region*TWO_PI/a_inputs.length + PI/a_inputs.length;
       int NN_wall_index = dist_region * a_inputs.length + angle_region;
-      NN_wall_input[NN_wall_index] = 10/dist_normal;
+      NN_wall_input[NN_wall_index] = min(0.1/dist_normal, 1);
       //text(str(NN_wall_index), pos.x, pos.y);
       }
     if (pos.y > height-vis_r) {
       float dist_normal = abs(height-pos.y)/vis_r;
       int dist_region = int(dist_normal*d_inputs.length);
-      float angle = atan2(height-pos.y, 0) + PI;
+      //float angle = atan2(height-pos.y, 0) + PI;
+      float angle = direction - (atan2(height-pos.y, 0) + PI);
+      if (angle > PI){
+       angle = -TWO_PI+angle; 
+      }
+      else if (angle < -PI){
+        angle = TWO_PI + angle; 
+      }
+      angle += PI;
       float angle_normal = min(angle/TWO_PI, 0.99);
       int angle_region = int(angle_normal*a_inputs.length);
       float angle_rounded = angle_region*TWO_PI/a_inputs.length + PI/a_inputs.length;
       int NN_wall_index = dist_region * a_inputs.length + angle_region;
-      NN_wall_input[NN_wall_index] = 10/dist_normal;
+      NN_wall_input[NN_wall_index] = min(0.1/dist_normal, 1);
       //text(str(NN_wall_index), pos.x, pos.y);
     } 
     if (pos.y < vis_r) {
       float dist_normal = abs(pos.y)/vis_r;
       int dist_region = int(dist_normal*d_inputs.length);
-      float angle = atan2(-pos.y, 0) + PI;
+      //float angle = atan2(-pos.y, 0) + PI;
+      float angle = direction - (atan2(-pos.y, 0) + PI);
+      if (angle > PI){
+       angle = -TWO_PI+angle; 
+      }
+      else if (angle < -PI){
+        angle = TWO_PI + angle; 
+      }
+      angle += PI;
       float angle_normal = min(angle/TWO_PI, 0.99);
       int angle_region = int(angle_normal*a_inputs.length);
       float angle_rounded = angle_region*TWO_PI/a_inputs.length + PI/a_inputs.length;
       int NN_wall_index = dist_region * a_inputs.length + angle_region;
-      NN_wall_input[NN_wall_index] = 10/dist_normal;
+      NN_wall_input[NN_wall_index] = min(0.1/dist_normal, 1);
       //text(str(NN_wall_index), pos.x, pos.y);
     }
   }
@@ -333,20 +380,28 @@ class Blob {
       float dist = abs(pos.dist(other_blob.pos) - other_blob.r);
       float dist_normal = min(dist/vis_r, 0.99);
       int dist_region = int(dist_normal*d_inputs.length);
-      float angle = atan2((other_blob.pos.y-pos.y), -(other_blob.pos.x-pos.x)) + PI;
+      //float angle = atan2((other_blob.pos.y-pos.y), -(other_blob.pos.x-pos.x)) + PI;
+      float angle = direction - (atan2((other_blob.pos.y-pos.y), -(other_blob.pos.x-pos.x)) + PI);
+      if (angle > PI){
+       angle = -TWO_PI+angle; 
+      }
+      else if (angle < -PI){
+        angle = TWO_PI + angle; 
+      }
+      angle += PI;
       float angle_normal = min(angle/TWO_PI, 0.99);
       int angle_region = int(angle_normal*a_inputs.length);
       float angle_rounded = angle_region*TWO_PI/a_inputs.length + PI/a_inputs.length;
       
       int NN_blob_index = dist_region * a_inputs.length + angle_region;
-      NN_blob_input[NN_blob_index] = r-other_blob.r;
+      NN_blob_input[NN_blob_index] = r/other_blob.r;
       
       if (display_flag == true){
         stroke(255);
         fill(255);
         //line(pos.x, pos.y, pos.x + cos(angle_rounded)*r, pos.y - sin(angle_rounded)*r);
-        line(pos.x, pos.y, pos.x + cos(angle)*r, pos.y - sin(angle)*r);
-        //text(str(NN_blob_index), pos.x, pos.y);
+        line(pos.x, pos.y, pos.x + cos(direction-angle-PI)*r, pos.y - sin(direction-angle-PI)*r);
+        text(str(NN_blob_index), pos.x, pos.y);
       }
       
     }
@@ -356,20 +411,28 @@ class Blob {
       float dist = abs(other_blob.pos.dist(pos) - r);
       float dist_normal = min(dist/other_blob.vis_r, 0.99);
       int dist_region = int(dist_normal*other_blob.d_inputs.length);
-      float angle = atan2((pos.y-other_blob.pos.y), -(pos.x-other_blob.pos.x)) + PI;
+      //float angle = atan2((pos.y-other_blob.pos.y), -(pos.x-other_blob.pos.x)) + PI;
+      float angle = other_blob.direction - (atan2((pos.y-other_blob.pos.y), -(pos.x-other_blob.pos.x)) + PI);
+      if (angle > PI){
+       angle = -TWO_PI+angle; 
+      }
+      else if (angle < -PI){
+        angle = TWO_PI + angle; 
+      }
+      angle += PI;
       float angle_normal = min(angle/TWO_PI, 0.99);
       int angle_region = int(angle_normal*other_blob.a_inputs.length);
       float angle_rounded = angle_region*TWO_PI/other_blob.a_inputs.length + PI/other_blob.a_inputs.length;
       
       int NN_blob_index = dist_region * other_blob.a_inputs.length + angle_region;
-      other_blob.NN_blob_input[NN_blob_index] = other_blob.r-r;
+      other_blob.NN_blob_input[NN_blob_index] = other_blob.r/r;
       
       if (display_flag == true){
         stroke(255);
         fill(255); 
         //line(other_blob.pos.x, other_blob.pos.y, other_blob.pos.x + cos(angle_rounded)*other_blob.r, other_blob.pos.y - sin(angle_rounded)*other_blob.r);
-        line(other_blob.pos.x, other_blob.pos.y, other_blob.pos.x + cos(angle)*other_blob.r, other_blob.pos.y - sin(angle)*other_blob.r); 
-        //text(str(NN_blob_index), other_blob.pos.x, other_blob.pos.y); 
+        line(other_blob.pos.x, other_blob.pos.y, other_blob.pos.x + cos(other_blob.direction-angle-PI)*other_blob.r, other_blob.pos.y - sin(other_blob.direction-angle-PI)*other_blob.r); 
+        text(str(NN_blob_index), other_blob.pos.x, other_blob.pos.y); 
       }
   }
     
@@ -393,18 +456,26 @@ class Blob {
       float dist = abs(pos.dist(food.pos) - food.r);
       float dist_normal = min(dist/vis_r, 0.99);
       int dist_region = int(dist_normal*d_inputs.length);
-      float angle = atan2((food.pos.y-pos.y), -(food.pos.x-pos.x)) + PI;
+      //float angle = atan2((food.pos.y-pos.y), -(food.pos.x-pos.x)) + PI;
+      float angle = direction - (atan2((food.pos.y-pos.y), -(food.pos.x-pos.x)) + PI);
+      if (angle > PI){
+       angle = -TWO_PI+angle; 
+      }
+      else if (angle < -PI){
+        angle = TWO_PI + angle; 
+      }
+      angle += PI;
       float angle_normal = min(angle/TWO_PI, 0.99);
       int angle_region = int(angle_normal*a_inputs.length);
       float angle_rounded = angle_region*TWO_PI/a_inputs.length + PI/a_inputs.length;
       
       int NN_food_index = dist_region * a_inputs.length + angle_region;
-      NN_food_input[NN_food_index] = food.energy;
+      NN_food_input[NN_food_index] = food.energy/r;
       
       if (display_flag == true){
         stroke(200, 100, 100);
         fill(255);
-        line(pos.x, pos.y, pos.x + cos(angle)*r, pos.y - sin(angle)*r);
+        line(pos.x, pos.y, pos.x + cos(direction-angle-PI)*r, pos.y - sin(direction-angle-PI)*r);
         //text(NN_food_index, pos.x, pos.y);
       }
     }
@@ -414,7 +485,7 @@ class Blob {
     // randomize chromosome
     int c_index = 0;
     for (int i = 0; i<(sizes[1] + sizes[2]) + (sizes[0]*sizes[1] + sizes[1]*sizes[2]); i++){
-      chromosome[i] = random(-1, 1); 
+      chromosome[i] = random(-2, 2); 
       c_index += 1;
     }
     chromosome[c_index] = random(0, 255);

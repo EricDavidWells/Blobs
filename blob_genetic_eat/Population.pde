@@ -43,7 +43,7 @@ class Population{
           blobs.individuals.remove(j); //<>// //<>//
           i--;
           continue;
-        } 
+        }
       }
     
       // check if blobs hit food
@@ -63,10 +63,16 @@ class Population{
   }
   
   void evaluate_fitness(){
+    float total_fitness = 0;
+    float max_fitness = 0;
     for (int i = individuals.size()-1; i>=0; i--){
       Blob individual = individuals.get(i);
       individual.fitness = 10*pow((individual.max_r-r_start), 1.5) + individual.energy_consumed + individual.age/30;
+      total_fitness += individual.fitness;
+      max_fitness = max(max_fitness, individual.fitness);
     }
+    
+    writer.println(str(max_fitness) + ',' + str(total_fitness) + ',' + str(millis()/1000.00));
   }
   
   void reproduce(){
@@ -142,7 +148,7 @@ float[] random_mutation(float[] chromosome, float mutation_rate_){
         if (random(0, 1) < mutation_rate_){
           // if else statement for choosing between random weights and random color
           if (j < chromosome.length-3){
-          chromosome[j] = random(-10, 10); 
+          chromosome[j] = random(-2, 2); 
           }
           else{
            chromosome[j] = random(255); 
