@@ -1,5 +1,6 @@
 class Population{
   ArrayList<Blob> individuals;
+  int generation = 0;
   
   Population(){
     individuals = new ArrayList<Blob>();
@@ -43,7 +44,7 @@ class Population{
           blobs.individuals.remove(j); //<>//
           i--;
           continue;
-        } 
+        }
       }
     
       // check if blobs hit food
@@ -63,15 +64,25 @@ class Population{
   }
   
   void evaluate_fitness(){
+    float total_fitness = 0;
+    float max_fitness = 0;
     for (int i = individuals.size()-1; i>=0; i--){
       Blob individual = individuals.get(i);
-      individual.fitness = 5*pow((individual.max_r-r_start), 1.5) + individual.age/30;
+      individual.fitness = 10*pow((individual.max_r-r_start), 1.5) + individual.energy_consumed + individual.age/30;
+      total_fitness += individual.fitness;
+      max_fitness = max(max_fitness, individual.fitness);
     }
+    String line = str(max_fitness) + ',' + str(total_fitness) + ',' + str(millis()/1000.00);
+    print('l');
+    writer.println(line);
+    writer.flush();
   }
   
   void reproduce(){
     if (individuals.size() <= pop_no-2){
       
+      evaluate_fitness();  
+  
       // selection   
       Blob parent_1 = roulette_wheel_selection(individuals);
       Blob parent_2 = roulette_wheel_selection(individuals);
@@ -84,16 +95,18 @@ class Population{
       float[] baby_chromosome_2 = random_mutation(baby_chromosomes[1], mutation_rate);
       
       // create new blobs
-      Blob baby_blob1 = new Blob(r_start, sp_max, vis_mult, d_inputs_n, a_inputs_n, "NN");
+      Blob baby_blob1 = new Blob(r_start, sp_max, vis_mult, d_inputs_n, a_inputs_n, "NN", sizes);
       baby_blob1.chromosome = baby_chromosome_1;
       baby_blob1.rebuild();
       individuals.add(baby_blob1);
       
-      Blob baby_blob2 = new Blob(r_start, sp_max, vis_mult, d_inputs_n, a_inputs_n, "NN");
+      Blob baby_blob2 = new Blob(r_start, sp_max, vis_mult, d_inputs_n, a_inputs_n, "NN", sizes);
       baby_blob2.chromosome = baby_chromosome_2;
       baby_blob2.rebuild();
       individuals.add(baby_blob2);
+      generation += 1;
     }
+    
   }
   
 }
