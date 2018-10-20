@@ -33,7 +33,7 @@ void setup() {
   
   // initialize size of window
   size(1000,700);
-  frameRate(20000);
+  frameRate(50);
   String filename = str(year()) + '-' + str(month()) + '-' + str(day()) + '_' + str(hour()) + 'h' + str(minute()) + "_fitness_data.txt";
   writer = createWriter("fitness_data\\" + filename);
   
@@ -551,9 +551,11 @@ void keyPressed(){
   if (key == 'd'){
     if (display_flag == true){
       display_flag = false; 
+      frameRate(20000);
     }
     else if (display_flag == false){
-      display_flag = true; 
+      display_flag = true;
+      frameRate(50);
     }
   }
   if (key == 'n'){
