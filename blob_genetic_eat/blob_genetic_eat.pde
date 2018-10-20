@@ -19,7 +19,7 @@ float vis_mult = 3;    // number to multiply radius by to get vision range
 float move_decay_rate = 0.0025;   // rate at which blobs decay
 float age_decay_rate = 0.00005;
 float mutation_rate = 0.05;
-
+float walldecay = 1;
 boolean display_flag = true;
 
 void setup() {
@@ -102,6 +102,7 @@ class Blob {
   float birthday;
   float age;
   float fitness;
+  int wallflag;
   org.jblas.FloatMatrix output;
 
   Blob(float r_start, float sp_max_, float vis_mult_, int d_inputs_n, int a_inputs_n, String dr_mode_){
@@ -128,6 +129,7 @@ class Blob {
     sizes[2] = 4;
     chromosome = new float[((sizes[1] + sizes[2]) + (sizes[0]*sizes[1] + sizes[1]*sizes[2])) + 3];
     output = org.jblas.FloatMatrix.zeros(4);
+    wallflag = 0;
 }
   
   void display() {
@@ -212,31 +214,45 @@ class Blob {
 
     float decay_amount = max(sqrt((pow(vel.x, 2) + pow(vel.y, 2)))/sp*move_decay_rate, age*age_decay_rate);
     r = max(0, r-decay_amount);
+    if (wallflag >= 1){
+     r = max(0, r-walldecay); 
+    }
     if (r<2.5){
       r = 0;
     }
+    
+    
+    
   }
   
   void check_wall_collision(){
     // check if collision with edges of screen and adjust position to not exceed it
     
+    wallflag = 0;
     if (pos.x > width-r) {
       pos.x = width-r;
       vel.x *= -0.5;
+      wallflag += 1;
       } 
+
     if (pos.x < r) {
       pos.x = r;
       vel.x *= -0.5;
-      } 
+      wallflag += 1;
+      }
+    
     if (pos.y > height-r) {
       pos.y = height-r;
       vel.y *= -0.5;
-      } 
+      wallflag += 1;
+      }
+
     if (pos.y < r) {
       pos.y = r;
       vel.y *= -0.5;
+      wallflag += 1;
     }
-      
+    
     stroke(255);
     fill(255);  
     // check vision collision
