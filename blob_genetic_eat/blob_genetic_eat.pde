@@ -179,7 +179,7 @@ class Blob {
   void drive() {
     
     vis_r = max(vis_mult*r, vis_min);
-    sp = sp_max/r;
+    //sp = sp_max/r;
     
     if (dr_mode == "brownian"){
       // random brownian movement
@@ -206,7 +206,7 @@ class Blob {
       org.jblas.FloatMatrix input = new org.jblas.FloatMatrix(concat(concat(NN_blob_input, NN_food_input), concat(NN_wall_input, NN_extra_input)));
       output = feed_forward(weights, biases, input);
       
-      float dir_change = map(output.get(0), 0, 1, -1, 1);
+      float dir_change = map(output.get(0), 0, 1, -0.25, 0.25);
       if (abs(dir_change) > dead_band){
         direction += dir_change;
       } //<>//

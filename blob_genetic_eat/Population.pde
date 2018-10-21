@@ -73,7 +73,6 @@ class Population{
       max_fitness = max(max_fitness, individual.fitness);
     }
     String line = str(max_fitness) + ',' + str(total_fitness) + ',' + str(millis()/1000.00);
-    print('l');
     writer.println(line);
     writer.flush();
   }
