@@ -8,3 +8,6 @@ Download the Processing IDE: https://processing.org/.  This was last tested with
 Within the `library` folder of this repository, copy the `jblas` folder over to the processing library folder.  To find the processing library folder, go to file/preferences/sketchbook location on the processing ide. The jblas library was downloaded from here: http://www.java2s.com/Code/Jar/j/Downloadjblas123jar.htm
 
 To run the program, open the `Main.pde` sketch and hit run in the processing IDE.
+
+## Image
+![](images/screenshot.png)
