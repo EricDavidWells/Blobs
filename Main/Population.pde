@@ -68,7 +68,8 @@ class Population{
     float max_fitness = 0;
     for (int i = individuals.size()-1; i>=0; i--){
       Blob individual = individuals.get(i);
-      individual.fitness = (10*pow((individual.max_r-r_start), 1.5) + individual.energy_consumed)/(individual.age/30);
+      //individual.fitness = (10*pow((individual.max_r-r_start), 1.5) + individual.energy_consumed)/(individual.age/30);
+      individual.fitness = (10*(individual.max_r-r_start)) + individual.energy_consumed;
       total_fitness += individual.fitness;
       max_fitness = max(max_fitness, individual.fitness);
     }
